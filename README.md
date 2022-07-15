@@ -22,7 +22,9 @@ The russian version of the task can be found in the repository.
     3.4. [Part 4](#part-4-bonus-approximation-with-weights)
 
 
-## Chapter I
+## Chapter I  
+
+![Algorithmic trading](misc/images/Algorithmic_trading.JPG)
 
 `-` "Anyway, Bob told you the essence of the task, didn't he?"
 
