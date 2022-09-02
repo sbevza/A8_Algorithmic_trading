@@ -100,6 +100,7 @@ You need to plot a tabulated function of stock quotes using interpolation method
 
 - The program must be developed in C++ language of C++17 standard
 - The library code must be located in the src folder in the develop branch
+- When writing code it is necessary to follow the Google style
 - The program must be built with Makefile which contains standard set of targets for GNU-programs all, install, uninstall, clean, dvi, dist. Installation directory could be arbitrary, except the building one
 - GUI implementation, based on any GUI library with API for C++ (Qt, SFML, GTK+, Nanogui, Nngui, etc.)
 - The data are loaded into the program from a file with stock quotes with the .csv extension:
