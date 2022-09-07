@@ -105,13 +105,15 @@ You need to plot a tabulated function of stock quotes using interpolation method
 - GUI implementation, based on any GUI library with API for C++ (Qt, SFML, GTK+, Nanogui, Nngui, etc.)
 - The data are loaded into the program from a file with stock quotes with the .csv extension:
     -  The file contains data in the form of a table, where the first column is the date, the second column is the value of the function (examples of data files are in the materials folder)
+- When uploading a new data file, clear the field for drawing graphs
 - The user sets the number of points on which the graph should be plotted (the number of points is not less than in the loaded file)
+- All points are evenly distributed between the start and end dates
 - On the final graph adjacent points must be connected by a straight line
 - Two interpolation methods must be implemented: *Cubic Spline* and *Newton's Polynomial of nth degree*.
 - There should be a button in the interface for drawing the cubic spline graph
 - There should be a button in the interface for drawing the graph by the Newton polynomial of nth degree
 - There should be a field in the interface for entering the degree of the Newton polynomial
--  There should be a button in the interface for clearing the field to draw graphs (the field is cleared only when you click on this button)
+-  There should be a button in the interface for clearing the field to draw graphs (the field is cleared only when you click on this button or new data is uploaded)
 - There can be up to 5 graphs displayed in the field at the same time (all graphs have different color)
 - If there are already 5 graphs displayed in the field, the buttons for drawing new graphs must be blocked
 - The interface has to contain the following information about the graphs:
@@ -126,7 +128,9 @@ You need to plot a tabulated function of stock quotes using the *least squares m
 Moreover, the graph should cover a longer period of time than the input data:
 
 - For graphs from this task there should be a separate field in the interface for drawing
+- When uploading a new data file, clear the field for drawing graphs
 - The user sets the number of points on which the graph should be plotted (the number of points is not less than in the loaded file)
+- All points are evenly distributed between the start and end dates
 - On the final graph adjacent points must be connected by a straight line
 - On the graph, the points specified in the loaded file must be visually marked:
     - The radius of these points is larger than the thickness of the graph curve
