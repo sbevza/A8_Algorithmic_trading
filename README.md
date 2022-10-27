@@ -194,3 +194,6 @@ Add weights to the table function of stock quotes and take them into account whe
 - Save the file part4.csv to the src folder in the repository, where the weights are set so that the condition of the previous point is met
 
 __*__ - This is not an investment recommendation.
+
+
+💡 [Tap here](https://forms.yandex.ru/u/635ab298c769f121dba81f0d/) **to leave your feedback on the project**. Pedago Team really tries to make your educational experience better.
