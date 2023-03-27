@@ -16,10 +16,11 @@ The russian version of the task can be found in the repository.
     2.4. [Approximation](#approximation)  
     2.5. [Least Squares Method](#least-squares-method)
 3. [Chapter III](#chapter-iii) \
-    3.1. [Part 1](#part-1-interpolation-of-tabulated-functions)  
-    3.2. [Part 2](#part-2-approximation-of-tabulated-functions )  
-    3.3. [Part 3](#part-3-bonus-research-on-temporal-characteristics)  
-    3.4. [Part 4](#part-4-bonus-approximation-with-weights)
+    3.1. [Part 1](#part-1-interpolation-of-tabulated-functions-with-cubic-spline-interpolation)  
+    3.2. [Part 2](#part-2-approximation-of-tabulated-functions)  
+    3.3. [Part 3](#part-3-bonus-interpolation-of-tabulated-functions-with-newton-interpolation-polynomial)  
+    3.4. [Part 4](#part-4-bonus-research-on-temporal-characteristics)  
+    3.5. [Part 5](#part-5-bonus-approximation-with-weights)
 
 
 ## Chapter I  
@@ -94,7 +95,7 @@ Since each value of $`x_i`$ is generally "accompanied" by the corresponding coef
 
 ## Chapter III
 
-## Part 1. Interpolation of tabulated functions
+## Part 1. Interpolation of tabulated functions with cubic spline interpolation
 
 You need to plot a tabulated function of stock quotes using interpolation methods:
 
@@ -109,18 +110,15 @@ You need to plot a tabulated function of stock quotes using interpolation method
 - The user sets the number of points on which the graph should be plotted (the number of points is not less than in the loaded file)
 - All points are evenly distributed between the start and end dates
 - On the final graph adjacent points must be connected by a straight line
-- Two interpolation methods must be implemented: *Cubic Spline* and *Newton's Polynomial of nth degree*.
+- The *Cubic Spline* interpolation method must be implemented.
 - There should be a button in the interface for drawing the cubic spline graph
-- There should be a button in the interface for drawing the graph by the Newton polynomial of nth degree
-- There should be a field in the interface for entering the degree of the Newton polynomial
--  There should be a button in the interface for clearing the field to draw graphs (the field is cleared only when you click on this button or new data is uploaded)
+- There should be a button in the interface for clearing the field to draw graphs (the field is cleared only when you click on this button or new data is uploaded)
 - There can be up to 5 graphs displayed in the field at the same time (all graphs have different color)
 - If there are already 5 graphs displayed in the field, the buttons for drawing new graphs must be blocked
 - The interface has to contain the following information about the graphs:
     - Color
     - Name of the file from which the data were taken
-    - Interpolation method (specifying the degree if it is a Newton polynomial)
-- Provide the ability to output the values of the stock quotes function obtained by both interpolation methods according to a user-defined argument value (date and time)
+- Provide the ability to output the values of the stock quotes function obtained by interpolation method according to a user-defined argument value (date and time)
 
 ## Part 2. Approximation of tabulated functions
 
@@ -149,7 +147,34 @@ Moreover, the graph should cover a longer period of time than the input data:
 - If there are already 5 graphs displayed in the field, the buttons for drawing new graphs must be blocked
 - Provide the ability to display the value of the approximating function for a given degree of the polynomial according to the user-defined value of the argument (date and time)
 
-## Part 3. Bonus. Research on temporal characteristics
+## Part 3. Bonus. Interpolation of tabulated functions with Newton interpolation polynomial
+
+You need to plot a tabulated function of stock quotes using interpolation methods:
+
+- The program must be developed in C++ language of C++17 standard
+- The library code must be located in the src folder in the develop branch
+- When writing code it is necessary to follow the Google style
+- The program must be built with Makefile which contains standard set of targets for GNU-programs all, install, uninstall, clean, dvi, dist. Installation directory could be arbitrary, except the building one
+- GUI implementation, based on any GUI library with API for C++ (Qt, SFML, GTK+, Nanogui, Nngui, etc.)
+- The data are loaded into the program from a file with stock quotes with the .csv extension:
+    -  The file contains data in the form of a table, where the first column is the date, the second column is the value of the function (examples of data files are in the materials folder)
+- When uploading a new data file, clear the field for drawing graphs
+- The user sets the number of points on which the graph should be plotted (the number of points is not less than in the loaded file)
+- All points are evenly distributed between the start and end dates
+- On the final graph adjacent points must be connected by a straight line
+- The *Newton's Polynomial of nth degree* interpolation method must be implemented.
+- There should be a button in the interface for drawing the graph by the Newton polynomial of nth degree
+- There should be a field in the interface for entering the degree of the Newton polynomial
+- There should be a button in the interface for clearing the field to draw graphs (the field is cleared only when you click on this button or new data is uploaded)
+- There can be up to 5 graphs displayed in the field at the same time (all graphs have different color)
+- If there are already 5 graphs displayed in the field, the buttons for drawing new graphs must be blocked
+- The interface has to contain the following information about the graphs:
+    - Color
+    - Name of the file from which the data were taken
+    - Interpolation method (specifying the degree if it is a Newton polynomial)
+- Provide the ability to output the values of the stock quotes function obtained by both interpolation methods according to a user-defined argument value (date and time)
+
+## Part 4. Bonus. Research on temporal characteristics
 
 Study the temporal characteristics of interpolations by cubic spline and Newton polynomial methods, depending on the number of calculated points.
 
@@ -178,7 +203,7 @@ The result will be two graphs, each consisting of 11 points:
 * the dependence of the number of points `k` from `t_spline`
 * the dependence of the number of points `k` from `t_newton`
 
-## Part 4. Bonus. Approximation with weights
+## Part 5. Bonus. Approximation with weights
 
 Add weights to the table function of stock quotes and take them into account when plotting graphs.
 
