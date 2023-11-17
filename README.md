@@ -221,4 +221,4 @@ Add weights to the table function of stock quotes and take them into account whe
 __*__ - This is not an investment recommendation.
 
 
-💡 [Tap here](https://forms.yandex.ru/cloud/64181fd2eb61462527cee6b5/) **to leave your feedback on the project**. Pedago Team really tries to make your educational experience better.
+💡 [Tap here](https://forms.yandex.ru/cloud/64181fd2eb61462527cee6b5/) **to leave your feedback on the project**. Product Team really tries to make your educational experience better.
