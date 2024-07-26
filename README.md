@@ -5,6 +5,8 @@ Implementation of the Algorithmic trading project.
 The russian version of the task can be found in the repository.
 
 
+💡 [Tap here](https://new.oprosso.net/p/4cb31ec3f47a4596bc758ea1861fb624) **to leave your feedback on the project**. It's anonymous and will help our team make your educational experience better. We recommend completing the survey immediately after the project.
+
 ## Contents
 
 1. [Chapter I](#chapter-i) \
@@ -220,5 +222,3 @@ Add weights to the table function of stock quotes and take them into account whe
 
 __*__ - This is not an investment recommendation.
 
-
-💡 [Tap here](https://forms.yandex.ru/cloud/64181fd2eb61462527cee6b5/) **to leave your feedback on the project**. Our Team really tries to make your educational experience better.
