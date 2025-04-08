@@ -102,7 +102,7 @@ Since each value of $`x_i`$ is generally "accompanied" by the corresponding coef
 
 You need to plot a tabulated function of stock quotes using interpolation methods:
 
-- The program must be developed in C++ language of C++17 standard.
+- The program must be developed in C++ language of C++20 standard.
 - The library code must be located in the src folder in the develop branch.
 - When writing code it is necessary to follow the Google style.
 - The program must be built with Makefile which contains standard set of targets for GNU-programs all, install, uninstall, clean, dvi, dist. Installation directory could be arbitrary, except the building one.
@@ -153,7 +153,7 @@ Moreover, the graph should cover a longer period of time than the input data:
 
 You need to plot a tabulated function of stock quotes using interpolation methods:
 
-- The program must be developed in C++ language of C++17 standard.
+- The program must be developed in C++ language of C++20 standard.
 - The library code must be located in the src folder in the develop branch.
 - When writing code it is necessary to follow the Google style.
 - The program must be built with Makefile which contains standard set of targets for GNU-programs all, install, uninstall, clean, dvi, dist. Installation directory could be arbitrary, except the building one.
