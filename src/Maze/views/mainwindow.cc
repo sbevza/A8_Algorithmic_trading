@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 
-#include "cave.h"
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -40,32 +39,6 @@ void MainWindow::setSolvedBlock(bool enabled) {
   ui->start_x->setEnabled(enabled);
   ui->start_y->setEnabled(enabled);
   ui->save_maze->setEnabled(enabled);
-}
-
-void MainWindow::on_cave_window_clicked() {
-  if (!caveWindow_) {
-    caveWindow_ = new Cave(this);
-    caveWindow_->setWindowFlags(Qt::Window);
-    caveWindow_->setAttribute(Qt::WA_DeleteOnClose);
-
-    connect(caveWindow_, &QObject::destroyed, this, &MainWindow::onCaveClosed);
-    ui->cave_window->setEnabled(false);
-  }
-
-  QPoint pos = this->pos();
-  QSize size = this->size();
-
-  int newX = pos.x() + size.width() + 5;
-  int newY = pos.y();
-
-  caveWindow_->setWindowFlags(Qt::Window);
-  caveWindow_->move(newX, newY);
-  caveWindow_->show();
-}
-
-void MainWindow::onCaveClosed() {
-  caveWindow_ = nullptr;
-  ui->cave_window->setEnabled(true);
 }
 
 void MainWindow::drawMaze(QGraphicsScene *scene, int rows, int cols,

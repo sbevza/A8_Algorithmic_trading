@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>502</width>
-    <height>680</height>
+    <height>675</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -167,13 +167,6 @@
         </widget>
        </item>
       </layout>
-     </item>
-     <item>
-      <widget class="QPushButton" name="cave_window">
-       <property name="text">
-        <string>Открыть окно создания пещер</string>
-       </property>
-      </widget>
      </item>
     </layout>
    </widget>

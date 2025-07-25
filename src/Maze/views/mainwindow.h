@@ -5,10 +5,11 @@
 #include <QFileDialog>
 #include <QMainWindow>
 #include <QVariantAnimation>
+#include <QGraphicsRectItem>
+#include <QMessageBox>
 #include <vector>
 
 #include "../controllers/maze_controller.h"
-#include "cave.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,8 +26,6 @@ class MainWindow : public QMainWindow {
 
  private slots:
   void setSolvedBlock(bool enabled);
-  void on_cave_window_clicked();
-  void onCaveClosed();
   void on_gen_maze_clicked();
   void on_load_maze_clicked();
   void on_find_solving_maze_clicked();
@@ -38,7 +37,6 @@ class MainWindow : public QMainWindow {
 
  private:
   Ui::MainWindow *ui;
-  Cave *caveWindow_ = nullptr;
   s21::MazeController *controller_;
 
   int mazeRows_{};

@@ -8,8 +8,6 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
 #find_package(GTest REQUIRED)
 
-#include_directories(src)
-#include_directories(src/trading)
 include_directories(src/Maze/controllers)
 include_directories(src/Maze/models)
 include_directories(src/Maze/views)
@@ -17,8 +15,6 @@ include_directories(src/Maze/views)
 add_executable(A8_Algorithmic_trading_1
 #        src/main.cc
         src/Maze/main.cc
-        src/Maze/views/cave.cc
-        src/Maze/views/cave.h
         src/Maze/views/mainwindow.cc
         src/Maze/views/mainwindow.h
         src/Maze/algorithmic_trading.pro
@@ -40,7 +36,7 @@ add_executable(A8_Algorithmic_trading_1
 target_link_libraries(A8_Algorithmic_trading_1
         m Qt6::Core Qt6::Widgets Qt6::OpenGLWidgets gtest gtest_main)
 
-#add_executable(A1_Maze_Tests
+#add_executable(A8_Algorithmic_trading_Tests
 #        src/Tests/maze_test.cc
 #        src/Tests/cave_test.cc
 #        src/Tests/maze_solver_test.cc

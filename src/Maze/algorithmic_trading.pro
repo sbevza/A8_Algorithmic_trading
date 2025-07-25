@@ -13,7 +13,6 @@ SOURCES += \
     controllers/maze_controller.cc \
     controllers/cave_controller.cc \
     views/mainwindow.cc \
-    views/cave.cc \
     models/cave_model.cc \
     models/maze.cc \
     models/maze_generator.cc \
@@ -21,7 +20,6 @@ SOURCES += \
     
 
 HEADERS += \
-    views/cave.h \
     views/mainwindow.h \
     controllers/maze_controller.h \
     controllers/cave_controller.h \
@@ -31,7 +29,6 @@ HEADERS += \
     models/maze_solver.h
 
 FORMS += \
-    views/cave.ui \
     views/mainwindow.ui
 
 # Default rules for deployment.
