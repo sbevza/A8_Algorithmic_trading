@@ -26,10 +26,6 @@ add_executable(A8_Algorithmic_trading_1
         src/Maze/models/maze_solver.h
         src/Maze/models/maze_generator.cc
         src/Maze/models/maze_generator.h
-        src/Maze/models/cave_model.cc
-        src/Maze/models/cave_model.h
-        src/Maze/controllers/cave_controller.cc
-        src/Maze/controllers/cave_controller.h
 
 )
 
