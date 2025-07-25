@@ -11,9 +11,7 @@ CONFIG += c++17
 SOURCES += \
     main.cc \
     controllers/maze_controller.cc \
-    controllers/cave_controller.cc \
     views/mainwindow.cc \
-    models/cave_model.cc \
     models/maze.cc \
     models/maze_generator.cc \
     models/maze_solver.cc
@@ -22,9 +20,7 @@ SOURCES += \
 HEADERS += \
     views/mainwindow.h \
     controllers/maze_controller.h \
-    controllers/cave_controller.h \
     models/maze_generator.h \
-    models/cave_model.h \
     models/maze.h \
     models/maze_solver.h
 

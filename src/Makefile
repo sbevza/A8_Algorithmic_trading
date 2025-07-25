@@ -3,7 +3,7 @@
 GCC = gcc -Wall -Werror -Wextra -std=c++17 
 
 TEST_FLAGS = -lgtest -lgtest_main -lstdc++ -lm -g 
-TEST_FILES = Tests/maze_test.cc Tests/maze_solver_test.cc Tests/maze_generator_test.cc Tests/cave_test.cc Maze/models/maze.cc Maze/models/maze_solver.cc Maze/models/maze_generator.cc Maze/models/cave_model.cc
+TEST_FILES = Tests/maze_test.cc Tests/maze_solver_test.cc Tests/maze_generator_test.cc Tests/cave_test.cc Maze/models/maze.cc Maze/models/maze_solver.cc Maze/models/maze_generator.cc
 TEST = $(GCC) $(TEST_FILES) $(TEST_FLAGS) -o s21_test
 
 
