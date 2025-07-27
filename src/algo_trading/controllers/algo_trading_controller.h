@@ -1,23 +1,10 @@
-#ifndef ALGO_TRADING_CONTROLLER_H
-#define ALGO_TRADING_CONTROLLER_H
+// algo_trading_controller.h
+#ifndef SRC_CONTROLLERS_ALGO_TRADING_CONTROLLER_H_
+#define SRC_CONTROLLERS_ALGO_TRADING_CONTROLLER_H_
 
 #include <QObject>
-#include <QString>
 #include <QVector>
-#include <QDateTime>
-
-// Простая структура для хранения одной записи из CSV (например, свеча или тик)
-struct TradeData {
-    QDateTime timestamp;
-    double open;
-    double high;
-    double low;
-    double close;
-    double volume;
-
-    // Конструктор (опционально)
-    TradeData() : open(0), high(0), low(0), close(0), volume(0) {}
-};
+#include "../models/csv_parser.h"
 
 namespace s21 {
 
@@ -26,19 +13,17 @@ class AlgoTradingController : public QObject {
 
 public:
     explicit AlgoTradingController(QObject *parent = nullptr);
-    ~AlgoTradingController();
 
-    // Загружает и парсит CSV
     bool loadTradingDataFromCsv(const QString& content);
-
-    // Получение данных
     const QVector<TradeData>& getTradeData() const;
     int getDataCount() const;
+    QString getLastError() const;
 
 private:
-    QVector<TradeData> tradeData_;  // Хранит загруженные рыночные данные
+    QVector<TradeData> tradeData_;
+    CsvParser parser_;
 };
 
 }  // namespace s21
 
-#endif // ALGO_TRADING_CONTROLLER_H
+#endif  // SRC_CONTROLLERS_ALGO_TRADING_CONTROLLER_H_

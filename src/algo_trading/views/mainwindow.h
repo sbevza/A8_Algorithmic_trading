@@ -26,9 +26,6 @@ class MainWindow : public QMainWindow {
  private slots:
     void on_pushButton_clicked();
 
-
-    void on_qcustomplot_customContextMenuRequested(const QPoint &pos);
-
 private:
   Ui::MainWindow *ui;
   s21::AlgoTradingController *controller_;

@@ -11,14 +11,18 @@ CONFIG += c++20
 SOURCES += \
     main.cc \
     controllers/algo_trading_controller.cc \
+    qcustomplot/qcustomplot.cc \
     views/mainwindow.cc \
-    qcustomplot/qcustomplot.cpp
+    models/csv_parser.cc \
+    models/trade_data.cc
 
 
 HEADERS += \
     views/mainwindow.h \
     controllers/algo_trading_controller.h \
-    qcustomplot/qcustomplot.h
+    qcustomplot/qcustomplot.h \
+    models/csv_parser.h \
+    models/trade_data.h
 
 
 FORMS += \
@@ -28,3 +32,4 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
