@@ -1,42 +1,44 @@
-#ifndef A1_MAZE_1_SRC_MAZE_CONTROLLERS_MAZECONTROLLER_H_
-#define A1_MAZE_1_SRC_MAZE_CONTROLLERS_MAZECONTROLLER_H_
+#ifndef ALGO_TRADING_CONTROLLER_H
+#define ALGO_TRADING_CONTROLLER_H
 
 #include <QObject>
+#include <QString>
+#include <QVector>
+#include <QDateTime>
 
-#include "../models/algo_trading.h"
-#include "../models/algo_trading_generator.h"
-#include "../models/algo_trading_solver.h"
+// Простая структура для хранения одной записи из CSV (например, свеча или тик)
+struct TradeData {
+    QDateTime timestamp;
+    double open;
+    double high;
+    double low;
+    double close;
+    double volume;
+
+    // Конструктор (опционально)
+    TradeData() : open(0), high(0), low(0), close(0), volume(0) {}
+};
 
 namespace s21 {
 
-class MazeController : public QObject {
-  Q_OBJECT
+class AlgoTradingController : public QObject {
+    Q_OBJECT
 
- public:
-  MazeController();
-  ~MazeController() override;
+public:
+    explicit AlgoTradingController(QObject *parent = nullptr);
+    ~AlgoTradingController();
 
-  void loadMazeFromFile(const std::string &filePath);
-  void saveMazeToFile(const std::string &filePath);
-  [[nodiscard]] const Maze *getModel() const { return model_; }
-  void findPath(int x1, int y1, int x2, int y2);
-  void generateMaze(int rows, int cols);
+    // Загружает и парсит CSV
+    bool loadTradingDataFromCsv(const QString& content);
 
-  int getRows() const;
-  int getCols() const;
+    // Получение данных
+    const QVector<TradeData>& getTradeData() const;
+    int getDataCount() const;
 
- signals:
-  void mazeLoaded(int rows, int cols,
-                  const std::vector<std::vector<bool>> &rightWalls,
-                  const std::vector<std::vector<bool>> &bottomWalls);
-  void error(std::string str);
-  void drawPath(std::vector<s21::Point> path);
-
- private:
-  s21::Maze *model_;
-  s21::MazeSolver *solver;
+private:
+    QVector<TradeData> tradeData_;  // Хранит загруженные рыночные данные
 };
 
 }  // namespace s21
 
-#endif  // A1_MAZE_1_SRC_MAZE_CONTROLLERS_MAZECONTROLLER_H_
+#endif // ALGO_TRADING_CONTROLLER_H

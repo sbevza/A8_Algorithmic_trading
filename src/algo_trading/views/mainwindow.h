@@ -24,10 +24,11 @@ class MainWindow : public QMainWindow {
   ~MainWindow() override;
 
  private slots:
+    void on_pushButton_clicked();
 
- private:
+  private:
   Ui::MainWindow *ui;
-  s21::MazeController *controller_;
+  s21::AlgoTradingController *controller_;
 
 };
 
