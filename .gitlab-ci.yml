@@ -1,0 +1,19 @@
+# .gitlab-ci.yml — минимальная конфигурация для сборки Qt + Make
+
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - echo "Текущая директория: $(pwd)"
+    - ls -la
+    - cd src                    # Переходим в папку с проектом (если .gitlab-ci.yml в корне)
+    - qmake                     # Генерируем Makefile из .pro-файла
+    - make -j$(nproc)           # Собираем проект, используя все ядра
+  artifacts:
+    paths:
+      - src/your_binary_name   # ← Замени на имя бинарника, который создаёт make
+    expire_in: 1 week
+  tags:
+    - qt-runner                # ← Убедись, что твой раннер имеет этот тег
