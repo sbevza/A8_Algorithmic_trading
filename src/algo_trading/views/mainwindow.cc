@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include "ui_mainwindow.h"
+#include "qcustomplot/qcustomplot.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -44,6 +45,42 @@ void MainWindow::on_pushButton_clicked() {
             auto first = controller_->getTradeData().first();
             qDebug() << "First price:" << first.close
                      << "at" << first.timestamp.toString();
+
+            // --- НАЧАЛО: Отрисовка графика ---
+            ui->plotWidget->clearGraphs();
+            ui->plotWidget->clearItems();
+
+            auto data = controller_->getTradeData();
+            QVector<double> xData, yData;
+
+            for (const auto &point : data) {
+                xData.append(point.timestamp.toMSecsSinceEpoch()); // Миллисекунды!
+                yData.append(point.close);
+            }
+
+            QCPGraph *dataPoints = ui->plotWidget->addGraph();
+            dataPoints->setData(xData, yData);
+            dataPoints->setLineStyle(QCPGraph::lsNone);
+            dataPoints->setScatterStyle(QCPScatterStyle(
+                QCPScatterStyle::ssCircle,
+                Qt::blue,
+                Qt::blue,
+                5
+                ));
+
+            QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
+            dateTicker->setDateTimeFormat("dd.MM.yyyy");
+            dateTicker->setDateTimeSpec(Qt::UTC);
+            ui->plotWidget->xAxis->setTicker(dateTicker);
+
+
+            ui->plotWidget->xAxis->setLabel("Дата");
+            ui->plotWidget->yAxis->setLabel("Цена");
+
+            ui->plotWidget->rescaleAxes();
+            ui->plotWidget->replot();
+            // --- КОНЕЦ: Отрисовка графика ---
+
         } else {
             QMessageBox::warning(this, tr("Ошибка"), tr("Ошибка при парсинге CSV"));
         }

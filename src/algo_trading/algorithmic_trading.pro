@@ -1,8 +1,8 @@
-QT       += core gui
+QT       += core gui 
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
-CONFIG += c++17
+CONFIG += c++20
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -12,17 +12,14 @@ SOURCES += \
     main.cc \
     controllers/algo_trading_controller.cc \
     views/mainwindow.cc \
-    models/algo_trading.cc \
-    models/algo_trading_generator.cc \
-    models/algo_trading_solver.cc
-    
+    qcustomplot/qcustomplot.cpp
+
 
 HEADERS += \
     views/mainwindow.h \
     controllers/algo_trading_controller.h \
-    models/algo_trading_generator.h \
-    models/algo_trading.h \
-    models/algo_trading_solver.h
+    qcustomplot/qcustomplot.h
+
 
 FORMS += \
     views/mainwindow.ui
