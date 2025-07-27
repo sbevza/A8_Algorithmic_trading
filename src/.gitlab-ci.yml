@@ -1,0 +1,6 @@
+build:
+  script:
+    - make
+  artifacts:
+    paths:
+      - build/
