@@ -26,7 +26,10 @@ class MainWindow : public QMainWindow {
  private slots:
     void on_pushButton_clicked();
 
-private:
+    void on_clean_button_clicked();
+
+
+ private:
   Ui::MainWindow *ui;
   s21::AlgoTradingController *controller_;
 

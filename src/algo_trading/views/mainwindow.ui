@@ -59,7 +59,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_3">
+      <widget class="QPushButton" name="clean_button">
        <property name="text">
         <string> Очистить график</string>
        </property>

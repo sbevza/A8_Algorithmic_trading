@@ -10,9 +10,9 @@ CONFIG += c++20
 
 SOURCES += \
     main.cc \
+    views/mainwindow.cc \
     controllers/algo_trading_controller.cc \
     qcustomplot/qcustomplot.cc \
-    views/mainwindow.cc \
     models/csv_parser.cc \
     models/trade_data.cc
 
@@ -28,8 +28,12 @@ HEADERS += \
 FORMS += \
     views/mainwindow.ui
 
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resources/resources.qrc
 
