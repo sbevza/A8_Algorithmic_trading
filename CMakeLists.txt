@@ -5,30 +5,39 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets PrintSupport REQUIRED)
 #find_package(GTest REQUIRED)
 
-include_directories(src/algo_trading/controllers)
-include_directories(src/algo_trading/models)
-include_directories(src/algo_trading/views)
+#include_directories(src/algo_trading/controllers)
+#include_directories(src/algo_trading/models)
+#include_directories(src/algo_trading/views)
+#include_directories(src/algo_trading/qcustomplot)
+
 
 add_executable(A8_Algorithmic_trading_1
-#        src/main.cc
         src/algo_trading/main.cc
         src/algo_trading/views/mainwindow.cc
         src/algo_trading/views/mainwindow.h
-        src/algo_trading/algorithmic_trading.pro
         src/algo_trading/models/csv_parser.cc
         src/algo_trading/models/trade_data.cc
         src/algo_trading/models/csv_parser.h
         src/algo_trading/models/trade_data.h
         src/algo_trading/controllers/algo_trading_controller.cc
         src/algo_trading/controllers/algo_trading_controller.h
+        src/algo_trading/qcustomplot/qcustomplot.cc
 
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/algo_trading
+)
+
 target_link_libraries(A8_Algorithmic_trading_1
-        m Qt6::Core Qt6::Widgets Qt6::OpenGLWidgets gtest gtest_main)
+        m
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::PrintSupport
+        gtest gtest_main)
 
 #add_executable(A8_Algorithmic_trading_Tests
 #        src/Tests/maze_test.cc
