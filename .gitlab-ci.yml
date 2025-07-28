@@ -5,9 +5,10 @@ build:
   stage: build
   script:
     - cd src
-    - make 
+    - make -j$(nproc)
   artifacts:
     paths:
       - src/algo_trading
-  tags:
-    - qt-runner
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
