@@ -5,4 +5,10 @@ build:
   stage: build
   script:
     - cd src
+    - qmake
     - make -j$(nproc)
+  artifacts:
+    paths:
+      - src/algo_trading
+  tags:
+    - qt-runner
