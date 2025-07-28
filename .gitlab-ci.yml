@@ -13,4 +13,4 @@ build:
       - src/algo_trading  # ← замени на имя твоего бинарника, например: src/main или src/algo_trading
     expire_in: 1 week
   tags:
-    - qt-runner          # ← должен совпадать с тегом твоего раннера
+    - qt-runner        
