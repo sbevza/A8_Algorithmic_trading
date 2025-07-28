@@ -6,9 +6,3 @@ build:
   script:
     - cd src
     - make -j$(nproc)
-  artifacts:
-    paths:
-      - src/algo_trading
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
