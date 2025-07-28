@@ -4,13 +4,11 @@ stages:
 build:
   stage: build
   script:
-    - echo "Building Qt project"
     - cd src
     - qmake
     - make -j$(nproc)
   artifacts:
     paths:
-      - src/algo_trading  # ← замени на имя твоего бинарника, например: src/main или src/algo_trading
-    expire_in: 1 week
+      - src/algo_trading
   tags:
-    - qt-runner        
+    - qt-runner
