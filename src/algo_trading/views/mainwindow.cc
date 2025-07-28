@@ -31,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->plotWidget->yAxis->grid()->setPen(QPen(Qt::lightGray, 1, Qt::DotLine));
     ui->plotWidget->xAxis->grid()->setSubGridPen(QPen(Qt::gray, 1, Qt::DotLine));
     ui->plotWidget->yAxis->grid()->setSubGridPen(QPen(Qt::gray, 1, Qt::DotLine));
+
     ui->plotWidget->xAxis->grid()->setSubGridVisible(true);
     ui->plotWidget->yAxis->grid()->setSubGridVisible(true);
 
@@ -91,7 +92,7 @@ void MainWindow::on_pushButton_clicked() {
         yData.reserve(data.size());
 
         for (const auto &point : data) {
-            xData.append(point.timestamp.toMSecsSinceEpoch()); // в миллисекундах для QCustomPlot
+            xData.append(point.timestamp.toSecsSinceEpoch());
             yData.append(point.close);
         }
 
