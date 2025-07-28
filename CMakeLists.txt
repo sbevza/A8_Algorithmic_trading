@@ -8,24 +8,22 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
 #find_package(GTest REQUIRED)
 
-include_directories(src/Maze/controllers)
-include_directories(src/Maze/models)
-include_directories(src/Maze/views)
+include_directories(src/algo_trading/controllers)
+include_directories(src/algo_trading/models)
+include_directories(src/algo_trading/views)
 
 add_executable(A8_Algorithmic_trading_1
 #        src/main.cc
-        src/Maze/main.cc
-        src/Maze/views/mainwindow.cc
-        src/Maze/views/mainwindow.h
-        src/Maze/algorithmic_trading.pro
-        src/Maze/models/maze.cc
-        src/Maze/models/maze.h
-        src/Maze/controllers/maze_controller.cc
-        src/Maze/controllers/maze_controller.h
-        src/Maze/models/maze_solver.cc
-        src/Maze/models/maze_solver.h
-        src/Maze/models/maze_generator.cc
-        src/Maze/models/maze_generator.h
+        src/algo_trading/main.cc
+        src/algo_trading/views/mainwindow.cc
+        src/algo_trading/views/mainwindow.h
+        src/algo_trading/algorithmic_trading.pro
+        src/algo_trading/models/csv_parser.cc
+        src/algo_trading/models/trade_data.cc
+        src/algo_trading/models/csv_parser.h
+        src/algo_trading/models/trade_data.h
+        src/algo_trading/controllers/algo_trading_controller.cc
+        src/algo_trading/controllers/algo_trading_controller.h
 
 )
 
