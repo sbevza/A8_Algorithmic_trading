@@ -25,6 +25,8 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/controllers/algo_trading_controller.cc
         src/algo_trading/controllers/algo_trading_controller.h
         src/algo_trading/qcustomplot/qcustomplot.cc
+        src/algo_trading/models/cubic_spline_interpolator.cc
+        src/algo_trading/models/cubic_spline_interpolator.h
 
 )
 
