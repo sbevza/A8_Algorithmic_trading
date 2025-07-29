@@ -1,6 +1,6 @@
 // csv_parser.cc
 #include "csv_parser.h"
-#include "trade_data.h" // ✅ Включаем напрямую
+#include "trade_data.h"
 
 #include <QTextStream>
 #include <QStringList>

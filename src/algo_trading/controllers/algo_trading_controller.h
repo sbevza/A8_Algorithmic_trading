@@ -4,24 +4,30 @@
 
 #include <QObject>
 #include <QVector>
+
 #include "../models/csv_parser.h"
+#include "models/cubic_spline_interpolator.h"
 
 namespace s21 {
 
 class AlgoTradingController : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 
-public:
-    explicit AlgoTradingController(QObject *parent = nullptr);
+ public:
+  explicit AlgoTradingController(QObject* parent = nullptr);
 
-    bool loadTradingDataFromCsv(const QString& content);
-    const QVector<TradeData>& getTradeData() const;
-    int getDataCount() const;
-    QString getLastError() const;
+  bool loadTradingDataFromCsv(const QString& content);
+  const QVector<TradeData>& getTradeData() const;
+  int getDataCount() const;
+  QString getLastError() const;
 
-private:
-    QVector<TradeData> tradeData_;
-    CsvParser parser_;
+  void buildSplineFromLoadedData();
+  double getInterpolatedValue(const QDateTime &dateTime) const;
+
+ private:
+  QVector<TradeData> tradeData_;
+  std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
+  CsvParser parser_;
 };
 
 }  // namespace s21
