@@ -94,6 +94,28 @@ void CubicSplineInterpolator::buildSpline() {
 }
 
 double CubicSplineInterpolator::interpolate(double x_val) const {
+  if (x_val < xs_.front() || x_val > xs_.back()) {
+    // return std::numeric_limits<double>::quiet_NaN();
+    throw std::runtime_error("Interpolation point x is out of data range.");
+  }
 
+
+  auto it = std::upper_bound(xs_.begin(), xs_.end(), x_val);
+  size_t i = std::distance(xs_.begin(), it) - 1;
+
+
+  if (i >= xs_.size() - 1) {
+    i = xs_.size() - 2;
+  }
+  if (x_val == xs_.back() && xs_.size() > 1) {
+    i = xs_.size() -
+        2;
+  }
+
+  double dx = x_val - xs_[i];
+
+
+  return a_coeffs_[i] + b_coeffs_[i] * dx + c_coeffs_[i] / 2.0 * dx * dx +
+         d_coeffs_[i] * dx * dx * dx;
 }
 }  // namespace s21
