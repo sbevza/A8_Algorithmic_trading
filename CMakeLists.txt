@@ -6,13 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 COMPONENTS Core Widgets PrintSupport REQUIRED)
-#find_package(GTest REQUIRED)
-
-#include_directories(src/algo_trading/controllers)
-#include_directories(src/algo_trading/models)
-#include_directories(src/algo_trading/views)
-#include_directories(src/algo_trading/qcustomplot)
-
+find_package(GTest REQUIRED)
 
 add_executable(A8_Algorithmic_trading_1
         src/algo_trading/main.cc
@@ -27,35 +21,42 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/qcustomplot/qcustomplot.cc
         src/algo_trading/models/cubic_spline_interpolator.cc
         src/algo_trading/models/cubic_spline_interpolator.h
-
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/algo_trading
 )
 
 target_link_libraries(A8_Algorithmic_trading_1
-        m
         Qt6::Core
         Qt6::Widgets
         Qt6::PrintSupport
-        gtest gtest_main)
+        m
+)
 
-#add_executable(A8_Algorithmic_trading_Tests
-#        src/Tests/maze_test.cc
-#        src/Tests/cave_test.cc
-#        src/Tests/maze_solver_test.cc
-#        src/Tests/maze_generator_test.cc
-#        src/Maze/models/maze.cc
-#        src/Maze/models/maze_solver.cc
-#        src/Maze/models/maze_generator.cc
-#        src/Maze/controllers/maze_controller.cc
-#        src/Maze/controllers/maze_controller.h
-#        src/Tests/test.cc
-#)
-#
-#target_include_directories(A1_Maze_Tests PRIVATE ${GTEST_INCLUDE_DIRS})
-#target_link_libraries(A1_Maze_Tests ${GTEST_LIBRARIES} Qt6::Core Qt6::Widgets Qt6::OpenGLWidgets pthread)
-#
-#enable_testing()
-#add_test(NAME maze_solver_test COMMAND A1_Maze_Tests)
+target_include_directories(A8_Algorithmic_trading_1 PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/algo_trading
+)
+
+
+add_executable(A8_Algorithmic_trading_Tests
+        src/tests/spline_test.cc
+        src/algo_trading/models/cubic_spline_interpolator.cc
+        src/algo_trading/models/cubic_spline_interpolator.h
+)
+
+set_target_properties(A8_Algorithmic_trading_Tests PROPERTIES
+        AUTOMOC OFF
+        AUTOUIC OFF
+)
+
+target_link_libraries(A8_Algorithmic_trading_Tests
+        GTest::gtest
+        GTest::gtest_main
+        m
+)
+
+target_include_directories(A8_Algorithmic_trading_Tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/algo_trading
+        ${CMAKE_SOURCE_DIR}/src/tests
+        ${CMAKE_SOURCE_DIR}/src
+)
+
+enable_testing()
+add_test(NAME spline_interpolator_test COMMAND A8_Algorithmic_trading_Tests)
