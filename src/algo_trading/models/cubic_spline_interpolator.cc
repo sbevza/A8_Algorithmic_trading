@@ -1,6 +1,7 @@
 #include "cubic_spline_interpolator.h"
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 namespace s21 {
@@ -36,57 +37,70 @@ CubicSplineInterpolator::CubicSplineInterpolator(
 void CubicSplineInterpolator::buildSpline() {
   size_t n = xs_.size();
   std::vector<double> h(n - 1);
-  std::vector<double> alpha(n - 1);
-
   for (size_t i = 0; i < n - 1; ++i) {
-    h[i] = xs_[i + 1] - xs_[i];
-    if (h[i] <= 0) {
-      throw std::runtime_error("Invalid x-coordinates: h must be positive.");
-    }
+    h[i] = xs_[i+1] - xs_[i];
   }
 
+  std::vector<double> alpha(n - 1, 0.0);
   for (size_t i = 1; i < n - 1; ++i) {
-    alpha[i] =
-        3.0 * ((ys_[i + 1] - ys_[i]) / h[i] - (ys_[i] - ys_[i - 1]) / h[i - 1]);
+    alpha[i] = 3.0 * (
+        (ys_[i+1] - ys_[i]) / h[i] -
+        (ys_[i] - ys_[i-1]) / h[i-1]
+    );
   }
 
-  // TDMA
-  std::vector<double> l(n);
-  std::vector<double> mu(n);
-  std::vector<double> z(n);
+  // === 🔹 ОТЛАДКА 1: Вывод h и alpha ===
+  std::cout << "DEBUG: h = ";
+  for (double val : h) std::cout << val << " ";
+  std::cout << std::endl;
+
+  std::cout << "DEBUG: alpha = ";
+  for (size_t i = 0; i < alpha.size(); ++i) {
+    std::cout << "[" << i << "]=" << alpha[i] << " ";
+  }
+  std::cout << std::endl;
+  // ====================================
+
+  std::vector<double> l(n, 0.0), z(n, 0.0);
 
   l[0] = 1.0;
-  mu[0] = 0.0;
   z[0] = 0.0;
 
   for (size_t i = 1; i < n - 1; ++i) {
-    double den = 2.0 * (xs_[i + 1] - xs_[i - 1]) - h[i - 1] * mu[i - 1];
-    if (den == 0) {
-      throw std::runtime_error(
-          "Error in spline calculation: division by zero (den).");
-    }
-    l[i] = h[i] / den;
-    mu[i] = alpha[i] - h[i - 1] * z[i - 1];
-    z[i] = mu[i] / den;
+    double denom = 2.0 * (h[i-1] + h[i]) - h[i-1] * l[i-1];
+    if (denom == 0) throw std::runtime_error("Singular system.");
+    l[i] = h[i] / denom;
+    z[i] = (alpha[i] - h[i-1] * z[i-1]) / denom;
+
+    std::cout << "  i=" << i
+                  << " denom=" << denom
+                  << " l[" << i << "]=" << l[i]
+                  << " z[" << i << "]=" << z[i]
+                  << std::endl;
   }
 
-  // Обратный проход
-  c_coeffs_[n - 1] = 0.0;
+  c_coeffs_[n-1] = 0.0;
   for (int i = n - 2; i >= 0; --i) {
-    c_coeffs_[i] = z[i] - l[i] * c_coeffs_[i + 1];
+    c_coeffs_[i] = z[i] - l[i] * c_coeffs_[i+1];
   }
+
+  c_coeffs_[0] = 0.0;
+
+  // === 🔹 ОТЛАДКА 3: Результат c_coeffs_ ===
+  std::cout << "DEBUG: c_coeffs_ = ";
+  for (size_t i = 0; i < c_coeffs_.size(); ++i) {
+    std::cout << "[" << i << "]=" << c_coeffs_[i] << " ";
+  }
+  std::cout << std::endl;
+  // ========================================
 
   for (size_t i = 0; i < n - 1; ++i) {
     a_coeffs_[i] = ys_[i];
-
-    if (h[i] == 0) {
-      throw std::runtime_error("Error in spline calculation: h[i] is zero.");
-    }
-
-    b_coeffs_[i] = (ys_[i + 1] - ys_[i]) / h[i] -
-                   h[i] * (c_coeffs_[i + 1] + 2.0 * c_coeffs_[i]) / 3.0;
-    d_coeffs_[i] = (c_coeffs_[i + 1] - c_coeffs_[i]) / (3.0 * h[i]);
+    b_coeffs_[i] = (ys_[i+1] - ys_[i]) / h[i] -
+                   h[i] * (2.0 * c_coeffs_[i] + c_coeffs_[i+1]) / 3.0;
+    d_coeffs_[i] = (c_coeffs_[i+1] - c_coeffs_[i]) / (3.0 * h[i]);
   }
+
 }
 
 double CubicSplineInterpolator::interpolate(double x_val) const {
@@ -106,7 +120,20 @@ double CubicSplineInterpolator::interpolate(double x_val) const {
   }
 
   double dx = x_val - xs_[i];
-  return a_coeffs_[i] + b_coeffs_[i] * dx + c_coeffs_[i] * dx * dx +
-         d_coeffs_[i] * dx * dx * dx;
+
+  // 🔹 Отладка
+  std::cout << "interpolate(" << x_val << ") -> i=" << i
+            << " x[i]=" << xs_[i] << " dx=" << dx
+            << " a=" << a_coeffs_[i]
+            << " b=" << b_coeffs_[i]
+            << " c=" << c_coeffs_[i]
+            << " d=" << d_coeffs_[i]
+            << std::endl;
+
+  double result = a_coeffs_[i] + b_coeffs_[i] * dx + c_coeffs_[i] * dx * dx + d_coeffs_[i] * dx * dx * dx;
+  std::cout << " -> result = " << result << std::endl;
+  return result;
+  // return a_coeffs_[i] + b_coeffs_[i] * dx + c_coeffs_[i] * dx * dx +
+  //        d_coeffs_[i] * dx * dx * dx;
 }
 }  // namespace s21
