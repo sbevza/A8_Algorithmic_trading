@@ -34,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->plotWidget->xAxis->grid()->setSubGridVisible(true);
     ui->plotWidget->yAxis->grid()->setSubGridVisible(true);
 
+    ui->spinBox->setMaximum(10000);
+
     updateUiState();
 }
 
@@ -115,7 +117,7 @@ void MainWindow::on_LoadDataCsv_clicked()
         ui->plotWidget->replot();
 
         ui->spinBox->setMinimum(count);
-        ui->spinBox->setValue(count);
+
     } else {
         QMessageBox::warning(this, tr("Ошибка"), tr("Ошибка при парсинге CSV-файла"));
     }
