@@ -14,7 +14,9 @@ SOURCES += \
     controllers/algo_trading_controller.cc \
     qcustomplot/qcustomplot.cc \
     models/csv_parser.cc \
-    models/trade_data.cc
+    models/trade_data.cc \
+    models/cubic_spline_interpolator.cc
+
 
 
 HEADERS += \
@@ -22,7 +24,8 @@ HEADERS += \
     controllers/algo_trading_controller.h \
     qcustomplot/qcustomplot.h \
     models/csv_parser.h \
-    models/trade_data.h
+    models/trade_data.h \
+    models/cubic_spline_interpolator.h
 
 
 FORMS += \

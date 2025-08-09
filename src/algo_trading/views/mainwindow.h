@@ -1,13 +1,10 @@
-#ifndef A1_MAZE_1_SRC_MAZE_MAINWINDOW_H_
-#define A1_MAZE_1_SRC_MAZE_MAINWINDOW_H_
+#ifndef SRC_MAINWINDOW_H_
+#define SRC_MAINWINDOW_H_
 
-#include <QFile>
-#include <QFileDialog>
 #include <QMainWindow>
-#include <QVariantAnimation>
-#include <QGraphicsRectItem>
 #include <QMessageBox>
-
+#include <QFileDialog>
+#include <QFile>
 #include "../controllers/algo_trading_controller.h"
 
 QT_BEGIN_NAMESPACE
@@ -17,22 +14,25 @@ class MainWindow;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow {
-  Q_OBJECT
+    Q_OBJECT
 
- public:
-  explicit MainWindow(QWidget *parent = nullptr);
-  ~MainWindow() override;
+public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
- private slots:
-    void on_pushButton_clicked();
-
+private slots:
+    void on_LoadDataCsv_clicked();
     void on_clean_button_clicked();
+    void on_PlotCubicSpline_clicked();
+    void on_PlotNewtonPolynomial_clicked();
 
+private:
+    Ui::MainWindow *ui;
+    s21::AlgoTradingController *controller_;
 
- private:
-  Ui::MainWindow *ui;
-  s21::AlgoTradingController *controller_;
-
+    void updateUiState();
+    QString createGraphLabel();
+    void plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label);
 };
 
-#endif  // A1_MAZE_1_SRC_MAZE_MAINWINDOW_H_
+#endif // SRC_MAINWINDOW_H_
