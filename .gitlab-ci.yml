@@ -8,3 +8,5 @@ build:
   artifacts:
     paths:
       - src/algo_trading
+  tags:
+    - wsl
