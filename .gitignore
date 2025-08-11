@@ -133,3 +133,4 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build/
+src/algo_trading/build/
