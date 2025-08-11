@@ -21,6 +21,9 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/qcustomplot/qcustomplot.cc
         src/algo_trading/models/cubic_spline_interpolator.cc
         src/algo_trading/models/cubic_spline_interpolator.h
+        src/algo_trading/models/newton_interpolator.cc
+        src/algo_trading/models/newton_interpolator.h
+        src/algo_trading/models/spline_point.h
 )
 
 target_link_libraries(A8_Algorithmic_trading_1
@@ -39,6 +42,9 @@ add_executable(A8_Algorithmic_trading_Tests
         src/tests/spline_test.cc
         src/algo_trading/models/cubic_spline_interpolator.cc
         src/algo_trading/models/cubic_spline_interpolator.h
+        src/algo_trading/models/newton_interpolator.cc
+        src/algo_trading/models/newton_interpolator.h
+        src/algo_trading/models/spline_point.h
 )
 
 set_target_properties(A8_Algorithmic_trading_Tests PROPERTIES

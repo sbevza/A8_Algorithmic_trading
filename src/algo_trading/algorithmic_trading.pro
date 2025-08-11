@@ -25,7 +25,8 @@ HEADERS += \
     qcustomplot/qcustomplot.h \
     models/csv_parser.h \
     models/trade_data.h \
-    models/cubic_spline_interpolator.h
+    models/cubic_spline_interpolator.h \
+    models/spline_point.h
 
 
 FORMS += \

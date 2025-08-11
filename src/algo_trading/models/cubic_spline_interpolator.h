@@ -2,12 +2,9 @@
 #define CUBIC_SPLINE_INTERPOLATOR_H
 #include <vector>
 
-namespace s21 {
+#include "spline_point.h"
 
-struct SplinePoint {
-  double x;
-  double y;
-};
+namespace s21 {
 
 class CubicSplineInterpolator {
  public:
@@ -17,7 +14,6 @@ class CubicSplineInterpolator {
  private:
   std::vector<double> xs_;
   std::vector<double> ys_;
-  // Владос, здесь только коэфиценты полинома каждого сплайна
   std::vector<double> a_coeffs_;
   std::vector<double> b_coeffs_;
   std::vector<double> c_coeffs_;
