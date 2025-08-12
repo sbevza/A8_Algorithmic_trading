@@ -4,13 +4,25 @@
 
 #include "spline_point.h"
 
+namespace s21 {
+
 class NewtonInterpolator {
  public:
-  explicit NewtonInterpolator(const std::vector<s21::SplinePoint>& points);
-
+  explicit NewtonInterpolator(const std::vector<SplinePoint>& points,
+                              int degree);
   [[nodiscard]] double interpolate(double x_val) const;
+  [[nodiscard]] int degree() const { return degree_; }
 
  private:
+  std::vector<double> x_vals_;
+  std::vector<double> y_vals_;
+  std::vector<double> coefficients_;
+  int degree_;
+
+  static std::vector<s21::SplinePoint> selectPointsUniformly(
+      const std::vector<SplinePoint>& points, int n);
 };
+
+}  // namespace s21
 
 #endif  // A8_ALGORITHMIC_TRADING_1_NEWTONINTERPOLATOR_H
