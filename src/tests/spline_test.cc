@@ -1,10 +1,11 @@
 // tests/spline_test.cc
+
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <vector>
 
-#include "algo_trading/models/cubic_spline_interpolator.h"
+#include "models/cubic_spline_interpolator.h"
 
 using namespace s21;
 

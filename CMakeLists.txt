@@ -23,7 +23,6 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/models/cubic_spline_interpolator.h
         src/algo_trading/models/newton_interpolator.cc
         src/algo_trading/models/newton_interpolator.h
-        src/algo_trading/models/spline_point.h
 )
 
 target_link_libraries(A8_Algorithmic_trading_1
@@ -44,7 +43,7 @@ add_executable(A8_Algorithmic_trading_Tests
         src/algo_trading/models/cubic_spline_interpolator.h
         src/algo_trading/models/newton_interpolator.cc
         src/algo_trading/models/newton_interpolator.h
-        src/algo_trading/models/spline_point.h
+        src/tests/newton_test.cc
 )
 
 set_target_properties(A8_Algorithmic_trading_Tests PROPERTIES
@@ -60,9 +59,7 @@ target_link_libraries(A8_Algorithmic_trading_Tests
 
 target_include_directories(A8_Algorithmic_trading_Tests PRIVATE
         ${CMAKE_SOURCE_DIR}/src/algo_trading
-        ${CMAKE_SOURCE_DIR}/src/tests
-        ${CMAKE_SOURCE_DIR}/src
 )
 
 enable_testing()
-add_test(NAME spline_interpolator_test COMMAND A8_Algorithmic_trading_Tests)
+add_test(NAME interpolator_test COMMAND A8_Algorithmic_trading_Tests)
