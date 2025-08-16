@@ -15,8 +15,8 @@ SOURCES += \
     qcustomplot/qcustomplot.cc \
     models/csv_parser.cc \
     models/trade_data.cc \
-    models/cubic_spline_interpolator.cc
-
+    models/cubic_spline_interpolator.cc \
+    models/newton_interpolator.cc
 
 
 HEADERS += \
@@ -26,7 +26,8 @@ HEADERS += \
     models/csv_parser.h \
     models/trade_data.h \
     models/cubic_spline_interpolator.h \
-    models/spline_point.h
+    models/spline_point.h \
+    models/newton_interpolator.h
 
 
 FORMS += \

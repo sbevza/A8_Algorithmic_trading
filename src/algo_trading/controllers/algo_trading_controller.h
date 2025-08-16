@@ -7,6 +7,7 @@
 
 #include "../models/csv_parser.h"
 #include "models/cubic_spline_interpolator.h"
+#include "models/newton_interpolator.h"
 
 namespace s21 {
 
@@ -24,9 +25,12 @@ class AlgoTradingController : public QObject {
   void buildSplineFromLoadedData();
   double getInterpolatedValue(const QDateTime &dateTime) const;
 
+  void buildNewtonPolynomial(int degree);
+  double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
  private:
   QVector<TradeData> tradeData_;
   std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
+  std::unique_ptr<s21::NewtonInterpolator> newton_interpolator_;
   CsvParser parser_;
 };
 

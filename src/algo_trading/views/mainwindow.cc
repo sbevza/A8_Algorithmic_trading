@@ -64,7 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Количество точек
     ui->numPoints->setMaximum(10000);
-    ui->numPoints->setValue(200); // разумное значение по умолчанию
+    ui->numPoints->setValue(200);
 
     updateUiState();
 }
@@ -81,6 +81,15 @@ void MainWindow::updateUiState()
     ui->PlotCubicSpline->setEnabled(hasData);
     ui->PlotNewtonPolynomial->setEnabled(hasData);
     ui->GetValue->setEnabled(hasData);
+    ui->showPoints->setEnabled(hasData);
+    ui->dateTimeEdit->setEnabled(hasData);
+    ui->numPointsLabel->setEnabled(hasData);
+    ui->degreeSpinBox->setEnabled(hasData);
+    ui->numPoints->setEnabled(hasData);
+    ui->ValueNewton->setEnabled(hasData);
+    ui->ValueSpline->setEnabled(hasData);
+    ui->clean_button->setEnabled(hasData);
+    ui->degreeLabel->setEnabled(hasData);
 }
 
 void MainWindow::on_clean_button_clicked()
@@ -93,6 +102,7 @@ void MainWindow::on_clean_button_clicked()
 
 void MainWindow::on_LoadDataCsv_clicked()
 {
+    on_clean_button_clicked();
     QString defaultDir = "../materials";
     QString fileName = QFileDialog::getOpenFileName(
         this,
@@ -135,6 +145,8 @@ void MainWindow::on_LoadDataCsv_clicked()
     }
 
     updateUiState();
+    setupDateTimeEditLimits();
+
 }
 
 void MainWindow::on_PlotCubicSpline_clicked()
@@ -149,7 +161,6 @@ void MainWindow::on_PlotCubicSpline_clicked()
         return;
     }
 
-    controller_->buildSplineFromLoadedData();
     auto data = controller_->getTradeData();
     if (data.size() < 2) {
         QMessageBox::warning(this, tr("Ошибка"), tr("Недостаточно данных для построения сплайна (минимум 2 точки)."));
@@ -171,30 +182,32 @@ void MainWindow::on_PlotCubicSpline_clicked()
         yInterp.append(y);
     }
 
-    // ✅ Правильно: QString вместо const char*
-    QString label = createGraphLabel("spline", ui->numPoints->value());
+    QString label = createGraphLabel("spline", 0, ui->numPoints->value());
     plotInterpolatedGraph(xInterp, yInterp, label);
 }
 
-void MainWindow::on_PlotNewtonPolynomial_clicked()
-{
-    if (controller_->getDataCount() == 0) {
-        QMessageBox::warning(this, tr("Ошибка"), tr("Нет данных для построения полинома. Сначала загрузите CSV."));
-        return;
-    }
+void MainWindow::on_PlotNewtonPolynomial_clicked() {
 
-    if (ui->plotWidget->graphCount() >= 5) {
-        QMessageBox::warning(this, tr("Лимит"), tr("Можно отображать не более 5 графиков."));
-        return;
-    }
-
-    // Здесь будет логика полинома Ньютона
+    int degree = ui->degreeSpinBox->value();
     auto data = controller_->getTradeData();
-    if (data.size() < 2) {
-        QMessageBox::warning(this, tr("Ошибка"), tr("Недостаточно данных для построения полинома (минимум 2 точки)."));
+
+    // 🔥 Братское предупреждение: если степень слишком высокая
+    if (degree > 10) {
+        QString warningMsg = tr(
+                                 "Степень полинома %1 — это слишком много.\n\n"
+                                 "Полиномы степени выше 10:\n"
+                                 "• Сильно колеблются (явление Рунге)\n"
+                                 "• Дают неадекватные значения между точками\n"
+                                 "• Численно нестабильны\n\n"
+                                 "Построение не выполняется — результат будет фигня.\n"
+                                 "Снизь степень, братиш, и всё будет ок."
+                                 ).arg(degree);
+
+        QMessageBox::information(this, tr("Не построено"), warningMsg);
         return;
     }
 
+    // Генерация точек графика
     double xStart = data.first().timestamp.toSecsSinceEpoch();
     double xEnd = data.last().timestamp.toSecsSinceEpoch();
     int numPoints = ui->numPoints->value();
@@ -205,43 +218,41 @@ void MainWindow::on_PlotNewtonPolynomial_clicked()
     for (int i = 0; i < numPoints; ++i) {
         double x = xStart + i * step;
         QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(x));
-        double y = controller_->getInterpolatedValue(dt); // ← замени на метод Ньютона
+        double y = controller_->getInterpolatedValueNewton(dt, degree);
         xPoly.append(x);
         yPoly.append(y);
     }
 
-    QString label = createGraphLabel("newton", ui->degreeSpinBox->value());
+    QString label = createGraphLabel("newton", degree, ui->numPoints->value());
     plotInterpolatedGraph(xPoly, yPoly, label);
 }
 
-// === УНИВЕРСАЛЬНЫЕ МЕТОДЫ ===
-
-QString MainWindow::createGraphLabel(const QString& type, int value)
+QString MainWindow::createGraphLabel(const QString& type, int degree, int pointCount)
 {
-    // Извлекаем имя файла
-    QString windowTitle = this->windowTitle();
-    QString fileName = "data.csv";
-    int start = windowTitle.indexOf("'");
-    int end = windowTitle.indexOf("'", start + 1);
-    if (start != -1 && end != -1) {
-        fileName = windowTitle.mid(start + 1, end - start - 1);
+    // Извлекаем имя файла из заголовка: 'имя.csv'
+    QString fileName = "unknown.csv";
+    QString title = this->windowTitle();
+    int start = title.indexOf("'");
+    int end = title.indexOf("'", start + 1);
+    if (start != -1 && end != -1 && end > start) {
+        fileName = title.mid(start + 1, end - start - 1);
     }
 
+    // Формируем префикс по типу
     QString prefix;
     if (type == "spline") {
-        prefix = QString("Spline (%1)").arg(value);  // например: Spline (1000)
+        prefix = QString("Spline (%1)").arg(pointCount);
     } else if (type == "newton") {
-        prefix = QString("Newton (n=%1)").arg(value);  // например: Newton (deg=3)
+        prefix = QString("Newton (%1) n=%2").arg(pointCount).arg(degree);
     } else {
-        prefix = "Plot";
+        prefix = QString("%1 (%2)").arg(type.toUpper()).arg(pointCount);
     }
 
-    // Цветовой символ ●
-    const QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan};
-
-    QChar bullet(0x25CF);
+    // Маркер ● и финальный вид
+    QChar bullet(0x25CF); // ●
     return QString("%1 %2 — %3").arg(bullet).arg(prefix).arg(fileName);
 }
+
 
 void MainWindow::plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label)
 {
@@ -255,5 +266,57 @@ void MainWindow::plotInterpolatedGraph(const QVector<double>& xData, const QVect
 
     ui->plotWidget->legend->setVisible(true);
     ui->plotWidget->rescaleAxes();
+    ui->plotWidget->replot();
+}
+
+void MainWindow::setupDateTimeEditLimits()
+{
+    auto data = controller_->getTradeData();
+    if (data.isEmpty()) return;
+
+    QDateTime minDate = data.first().timestamp;
+    QDateTime maxDate = data.last().timestamp;
+
+    ui->dateTimeEdit->setDateTimeRange(minDate, maxDate);
+    ui->dateTimeEdit->setDateTime(minDate);
+}
+
+void MainWindow::on_GetValue_clicked() {
+    QDateTime dateTime = ui->dateTimeEdit->dateTime();
+    int degree = ui->degreeSpinBox->value();
+
+    // === Сплайн ===
+    double splineValue = controller_->getInterpolatedValue(dateTime);
+    QString splineText = std::isnan(splineValue) ? "—" : QString::number(splineValue, 'f', 6);
+    ui->ValueSpline->setText("Значение сплайна: " + splineText);
+
+    // === Полином Ньютона ===
+    double newValue = controller_->getInterpolatedValueNewton(dateTime, degree);
+    QString newtonText = std::isnan(newValue) ? "—" : QString::number(newValue, 'f', 6);
+    ui->ValueNewton->setText("Значение полинома: " + newtonText);
+}
+
+void MainWindow::on_showPoints_clicked()
+{
+    static bool pointsVisible = false;
+    pointsVisible = !pointsVisible;
+
+    for (int i = 0; i < ui->plotWidget->graphCount(); ++i) {
+        QCPGraph* graph = ui->plotWidget->graph(i);
+        QPen pen = graph->pen();  // ← текущий цвет линии
+
+        QCPScatterStyle style;
+        if (pointsVisible) {
+            style = QCPScatterStyle(QCPScatterStyle::ssCircle,
+                                    pen.color(),
+                                    pen.color(),
+                                    6);
+        } else {
+            style = QCPScatterStyle::ssNone;
+        }
+
+        graph->setScatterStyle(style);
+    }
+
     ui->plotWidget->replot();
 }
