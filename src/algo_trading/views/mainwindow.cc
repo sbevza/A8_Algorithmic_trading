@@ -22,19 +22,49 @@ MainWindow::MainWindow(QWidget *parent)
     // Оси
     ui->plotWidget->xAxis->setLabel("Дата");
     ui->plotWidget->yAxis->setLabel("Цена");
+    ui->plotWidget->xAxis->setLabelColor(Qt::darkBlue);
+    ui->plotWidget->yAxis->setLabelColor(Qt::darkBlue);
+    ui->plotWidget->xAxis->setTickLabelColor(Qt::darkGray);
+    ui->plotWidget->yAxis->setTickLabelColor(Qt::darkGray);
 
     // Фон
-    ui->plotWidget->setBackground(Qt::white);
+    ui->plotWidget->setBackground(QColor(245, 245, 245)); // светло-серый фон
 
-    // Сетка
-    ui->plotWidget->xAxis->grid()->setPen(QPen(Qt::lightGray, 1, Qt::DotLine));
-    ui->plotWidget->yAxis->grid()->setPen(QPen(Qt::lightGray, 1, Qt::DotLine));
-    ui->plotWidget->xAxis->grid()->setSubGridPen(QPen(Qt::gray, 1, Qt::DotLine));
-    ui->plotWidget->yAxis->grid()->setSubGridPen(QPen(Qt::gray, 1, Qt::DotLine));
+    // Сетка — мягкие линии
+    QPen majorGridPen(Qt::lightGray, 1, Qt::SolidLine);
+    QPen minorGridPen(Qt::gray, 0.8, Qt::DotLine);
+
+    ui->plotWidget->xAxis->grid()->setPen(majorGridPen);
+    ui->plotWidget->yAxis->grid()->setPen(majorGridPen);
+    ui->plotWidget->xAxis->grid()->setSubGridPen(minorGridPen);
+    ui->plotWidget->yAxis->grid()->setSubGridPen(minorGridPen);
     ui->plotWidget->xAxis->grid()->setSubGridVisible(true);
     ui->plotWidget->yAxis->grid()->setSubGridVisible(true);
 
-    ui->spinBox->setMaximum(10000);
+    // Легенда
+    ui->plotWidget->legend->setVisible(true);
+    ui->plotWidget->legend->setBrush(QColor(255, 255, 255, 220));
+    ui->plotWidget->legend->setBorderPen(QPen(Qt::lightGray, 1));
+    ui->plotWidget->legend->setFont(QFont("Arial", 9));
+
+    // Диапазон по умолчанию: 2020–2025
+    QDateTime start = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
+    QDateTime end = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
+    ui->plotWidget->xAxis->setRange(start.toSecsSinceEpoch(), end.toSecsSinceEpoch());
+    ui->plotWidget->yAxis->setRange(0, 100); // временной диапазон цены
+
+    // Ограничение масштабирования
+    ui->plotWidget->xAxis->setRangeLower(start.toSecsSinceEpoch());
+
+    // Настройка шрифтов
+    QFont axisFont = font();
+    axisFont.setPointSize(9);
+    ui->plotWidget->xAxis->setTickLabelFont(axisFont);
+    ui->plotWidget->yAxis->setTickLabelFont(axisFont);
+
+    // Количество точек
+    ui->numPoints->setMaximum(10000);
+    ui->numPoints->setValue(200); // разумное значение по умолчанию
 
     updateUiState();
 }
@@ -50,6 +80,7 @@ void MainWindow::updateUiState()
     bool hasData = controller_->getDataCount() > 0;
     ui->PlotCubicSpline->setEnabled(hasData);
     ui->PlotNewtonPolynomial->setEnabled(hasData);
+    ui->GetValue->setEnabled(hasData);
 }
 
 void MainWindow::on_clean_button_clicked()
@@ -75,6 +106,7 @@ void MainWindow::on_LoadDataCsv_clicked()
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QMessageBox::warning(this, tr("Ошибка"), tr("Не удалось открыть файл:\n%1").arg(fileName));
+        setWindowTitle(windowTitle().section(" — ", 0, 0) + " — Ошибка загрузки данных, попробуйте снова");
         return;
     }
 
@@ -86,40 +118,20 @@ void MainWindow::on_LoadDataCsv_clicked()
         int count = controller_->getDataCount();
         if (count == 0) {
             QMessageBox::warning(this, tr("Ошибка"), tr("Файл загружен, но данные не найдены"));
+            setWindowTitle(windowTitle().section(" — ", 0, 0) + " — Ошибка загрузки данных, попробуйте снова");
             return;
         }
 
-        QMessageBox::information(this, tr("Успех"),
-                                 tr("Данные успешно загружены!\nЗаписей: %1").arg(count));
-
         QFileInfo fileInfo(fileName);
         QString shortFileName = fileInfo.fileName();
-        this->setWindowTitle(this->windowTitle() + " - " + shortFileName);
+        QString baseTitle = windowTitle().section(" — ", 0, 0); // Исходное название до " — "
+        setWindowTitle(QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
+                           .arg(baseTitle, shortFileName).arg(count));
 
-        // Отрисовка исходных точек
-        ui->plotWidget->clearGraphs();
-        auto data = controller_->getTradeData();
-        QVector<double> xData, yData;
-        xData.reserve(data.size());
-        yData.reserve(data.size());
-
-        for (const auto &point : data) {
-            xData.append(point.timestamp.toSecsSinceEpoch());
-            yData.append(point.close);
-        }
-
-        QCPGraph *graph = ui->plotWidget->addGraph();
-        graph->setData(xData, yData);
-        graph->setLineStyle(QCPGraph::lsNone);
-        graph->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::blue, Qt::blue, 5));
-
-        ui->plotWidget->rescaleAxes();
-        ui->plotWidget->replot();
-
-        ui->spinBox->setMinimum(count);
-
+        ui->numPoints->setMinimum(count);
     } else {
         QMessageBox::warning(this, tr("Ошибка"), tr("Ошибка при парсинге CSV-файла"));
+        setWindowTitle(windowTitle().section(" — ", 0, 0) + " — Ошибка загрузки данных, попробуйте снова");
     }
 
     updateUiState();
@@ -146,7 +158,7 @@ void MainWindow::on_PlotCubicSpline_clicked()
 
     double xStart = data.first().timestamp.toSecsSinceEpoch();
     double xEnd = data.last().timestamp.toSecsSinceEpoch();
-    int numPoints = ui->spinBox->value();
+    int numPoints = ui->numPoints->value();
 
     QVector<double> xInterp, yInterp;
     double step = (xEnd - xStart) / (numPoints - 1);
@@ -159,7 +171,8 @@ void MainWindow::on_PlotCubicSpline_clicked()
         yInterp.append(y);
     }
 
-    QString label = createGraphLabel();
+    // ✅ Правильно: QString вместо const char*
+    QString label = createGraphLabel("spline", ui->numPoints->value());
     plotInterpolatedGraph(xInterp, yInterp, label);
 }
 
@@ -184,7 +197,7 @@ void MainWindow::on_PlotNewtonPolynomial_clicked()
 
     double xStart = data.first().timestamp.toSecsSinceEpoch();
     double xEnd = data.last().timestamp.toSecsSinceEpoch();
-    int numPoints = ui->spinBox->value();
+    int numPoints = ui->numPoints->value();
 
     QVector<double> xPoly, yPoly;
     double step = (xEnd - xStart) / (numPoints - 1);
@@ -197,21 +210,37 @@ void MainWindow::on_PlotNewtonPolynomial_clicked()
         yPoly.append(y);
     }
 
-    QString label = createGraphLabel();
+    QString label = createGraphLabel("newton", ui->degreeSpinBox->value());
     plotInterpolatedGraph(xPoly, yPoly, label);
 }
 
 // === УНИВЕРСАЛЬНЫЕ МЕТОДЫ ===
 
-QString MainWindow::createGraphLabel()
+QString MainWindow::createGraphLabel(const QString& type, int value)
 {
-    QString fileName = "unknown.csv";
+    // Извлекаем имя файла
     QString windowTitle = this->windowTitle();
-    if (windowTitle.contains(" - ")) {
-        fileName = windowTitle.split(" - ").last();
+    QString fileName = "data.csv";
+    int start = windowTitle.indexOf("'");
+    int end = windowTitle.indexOf("'", start + 1);
+    if (start != -1 && end != -1) {
+        fileName = windowTitle.mid(start + 1, end - start - 1);
     }
-    int graphNumber = ui->plotWidget->graphCount() + 1;
-    return QString("График %1 (%2)").arg(graphNumber).arg(fileName);
+
+    QString prefix;
+    if (type == "spline") {
+        prefix = QString("Spline (%1)").arg(value);  // например: Spline (1000)
+    } else if (type == "newton") {
+        prefix = QString("Newton (n=%1)").arg(value);  // например: Newton (deg=3)
+    } else {
+        prefix = "Plot";
+    }
+
+    // Цветовой символ ●
+    const QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan};
+
+    QChar bullet(0x25CF);
+    return QString("%1 %2 — %3").arg(bullet).arg(prefix).arg(fileName);
 }
 
 void MainWindow::plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label)

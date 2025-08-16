@@ -30,8 +30,9 @@ private:
     Ui::MainWindow *ui;
     s21::AlgoTradingController *controller_;
 
+
+    QString createGraphLabel(const QString& type, int value);
     void updateUiState();
-    QString createGraphLabel();
     void plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label);
 };
 
