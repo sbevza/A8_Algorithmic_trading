@@ -39,7 +39,16 @@ private:
     QString createGraphLabel(const QString& type, int degree, int pointCount);
     void updateUiState();
     void setupDateTimeEditLimits();
-    void plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label);
+    bool showPoints_ = false;
+    QVector<double> generateX(double xStart, double xEnd, int numPoints);
+    void plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y, const QString& label);
+    void plotInterpolatedFunction(
+        const QString& type,
+        int degree,
+        std::function<double(const QDateTime&)> valueFunc,
+        int pointCount
+        );
+
 };
 
 #endif // SRC_MAINWINDOW_H_

@@ -97,7 +97,6 @@ void MainWindow::on_clean_button_clicked()
     ui->plotWidget->clearGraphs();
     ui->plotWidget->clearItems();
     ui->plotWidget->replot();
-    updateUiState();
 }
 
 void MainWindow::on_LoadDataCsv_clicked()
@@ -151,47 +150,19 @@ void MainWindow::on_LoadDataCsv_clicked()
 
 void MainWindow::on_PlotCubicSpline_clicked()
 {
-    if (controller_->getDataCount() == 0) {
-        QMessageBox::warning(this, tr("Ошибка"), tr("Нет данных для построения сплайна. Сначала загрузите CSV."));
-        return;
-    }
-
-    if (ui->plotWidget->graphCount() >= 5) {
-        QMessageBox::warning(this, tr("Лимит"), tr("Можно отображать не более 5 графиков."));
-        return;
-    }
-
-    auto data = controller_->getTradeData();
-    if (data.size() < 2) {
-        QMessageBox::warning(this, tr("Ошибка"), tr("Недостаточно данных для построения сплайна (минимум 2 точки)."));
-        return;
-    }
-
-    double xStart = data.first().timestamp.toSecsSinceEpoch();
-    double xEnd = data.last().timestamp.toSecsSinceEpoch();
-    int numPoints = ui->numPoints->value();
-
-    QVector<double> xInterp, yInterp;
-    double step = (xEnd - xStart) / (numPoints - 1);
-
-    for (int i = 0; i < numPoints; ++i) {
-        double x = xStart + i * step;
-        QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(x));
-        double y = controller_->getInterpolatedValue(dt);
-        xInterp.append(x);
-        yInterp.append(y);
-    }
-
-    QString label = createGraphLabel("spline", 0, ui->numPoints->value());
-    plotInterpolatedGraph(xInterp, yInterp, label);
+    plotInterpolatedFunction(
+        "spline",
+        0,
+        [this](const QDateTime& dt) { return controller_->getInterpolatedValue(dt); },
+        ui->numPoints->value()
+        );
 }
 
-void MainWindow::on_PlotNewtonPolynomial_clicked() {
-
+void MainWindow::on_PlotNewtonPolynomial_clicked()
+{
     int degree = ui->degreeSpinBox->value();
     auto data = controller_->getTradeData();
 
-    // 🔥 Братское предупреждение: если степень слишком высокая
     if (degree > 10) {
         QString warningMsg = tr(
                                  "Степень полинома %1 — это слишком много.\n\n"
@@ -207,25 +178,24 @@ void MainWindow::on_PlotNewtonPolynomial_clicked() {
         return;
     }
 
-    // Генерация точек графика
-    double xStart = data.first().timestamp.toSecsSinceEpoch();
-    double xEnd = data.last().timestamp.toSecsSinceEpoch();
-    int numPoints = ui->numPoints->value();
 
-    QVector<double> xPoly, yPoly;
-    double step = (xEnd - xStart) / (numPoints - 1);
-
-    for (int i = 0; i < numPoints; ++i) {
-        double x = xStart + i * step;
-        QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(x));
-        double y = controller_->getInterpolatedValueNewton(dt, degree);
-        xPoly.append(x);
-        yPoly.append(y);
+    if (data.size() < degree + 1) {
+        QMessageBox::warning(this, "Ошибка",
+                             QString("Для степени %1 нужно %2 точек, доступно: %3")
+                                 .arg(degree).arg(degree + 1).arg(data.size()));
+        return;
     }
 
-    QString label = createGraphLabel("newton", degree, ui->numPoints->value());
-    plotInterpolatedGraph(xPoly, yPoly, label);
+    plotInterpolatedFunction(
+        "newton",
+        degree,
+        [this, degree](const QDateTime& dt) {
+            return controller_->getInterpolatedValueNewton(dt, degree);
+        },
+        ui->numPoints->value()
+        );
 }
+
 
 QString MainWindow::createGraphLabel(const QString& type, int degree, int pointCount)
 {
@@ -253,21 +223,6 @@ QString MainWindow::createGraphLabel(const QString& type, int degree, int pointC
     return QString("%1 %2 — %3").arg(bullet).arg(prefix).arg(fileName);
 }
 
-
-void MainWindow::plotInterpolatedGraph(const QVector<double>& xData, const QVector<double>& yData, const QString& label)
-{
-    const QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan};
-    QColor color = colors[ui->plotWidget->graphCount()];
-
-    QCPGraph* graph = ui->plotWidget->addGraph();
-    graph->setData(xData, yData);
-    graph->setPen(QPen(color, 2));
-    graph->setName(label);
-
-    ui->plotWidget->legend->setVisible(true);
-    ui->plotWidget->rescaleAxes();
-    ui->plotWidget->replot();
-}
 
 void MainWindow::setupDateTimeEditLimits()
 {
@@ -298,25 +253,87 @@ void MainWindow::on_GetValue_clicked() {
 
 void MainWindow::on_showPoints_clicked()
 {
-    static bool pointsVisible = false;
-    pointsVisible = !pointsVisible;
+    showPoints_ = !showPoints_;
 
     for (int i = 0; i < ui->plotWidget->graphCount(); ++i) {
-        QCPGraph* graph = ui->plotWidget->graph(i);
-        QPen pen = graph->pen();  // ← текущий цвет линии
-
-        QCPScatterStyle style;
-        if (pointsVisible) {
-            style = QCPScatterStyle(QCPScatterStyle::ssCircle,
-                                    pen.color(),
-                                    pen.color(),
-                                    6);
-        } else {
-            style = QCPScatterStyle::ssNone;
-        }
-
-        graph->setScatterStyle(style);
+        QCPGraph* g = ui->plotWidget->graph(i);
+        QColor color = g->pen().color();
+        g->setScatterStyle(showPoints_
+                               ? QCPScatterStyle(QCPScatterStyle::ssCircle, color, color, 6)
+                               : QCPScatterStyle::ssNone
+                           );
     }
 
     ui->plotWidget->replot();
+}
+
+
+void MainWindow::plotInterpolatedFunction(
+    const QString& type,
+    int degree,
+    std::function<double(const QDateTime&)> valueFunc,
+    int pointCount)
+{
+    if (controller_->getDataCount() == 0) {
+        QMessageBox::warning(this, "Ошибка", "Нет данных. Загрузите CSV.");
+        return;
+    }
+
+    auto data = controller_->getTradeData();
+    if (data.size() < 2) {
+        QMessageBox::warning(this, "Ошибка", "Минимум 2 точки.");
+        return;
+    }
+
+    double xStart = data.first().timestamp.toSecsSinceEpoch();
+    double xEnd = data.last().timestamp.toSecsSinceEpoch();
+
+    QVector<double> x = generateX(xStart, xEnd, pointCount);
+    QVector<double> y;
+    y.reserve(x.size());
+
+    for (double xi : x) {
+        QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi));
+        y.append(valueFunc(dt));
+    }
+
+    QString label = createGraphLabel(type, degree, pointCount);
+    plotInterpolatedGraph(x, y, label);
+}
+
+void MainWindow::plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y, const QString& label)
+{
+    if (ui->plotWidget->graphCount() >= 5) {
+        QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
+        return;
+    }
+
+    QCPGraph* graph = ui->plotWidget->addGraph();  // ← теперь это QCPGraph*
+    graph->setData(x, y);
+    graph->setName(label);
+
+    static QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan};
+    int index = ui->plotWidget->graphCount();
+    QColor color = colors[index % colors.size()];
+    graph->setPen(QPen(color, 2));
+
+    // Применяем стиль: точки или нет
+    graph->setScatterStyle(showPoints_
+                               ? QCPScatterStyle(QCPScatterStyle::ssCircle, color, color, 6)
+                               : QCPScatterStyle::ssNone
+                           );
+
+    ui->plotWidget->rescaleAxes();
+    ui->plotWidget->replot();
+}
+
+QVector<double> MainWindow::generateX(double xStart, double xEnd, int numPoints)
+{
+    QVector<double> x;
+    x.reserve(numPoints);
+    double step = (xEnd - xStart) / (numPoints - 1);
+    for (int i = 0; i < numPoints; ++i) {
+        x.append(xStart + i * step);
+    }
+    return x;
 }
