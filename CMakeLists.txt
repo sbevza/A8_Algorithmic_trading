@@ -23,6 +23,8 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/models/cubic_spline_interpolator.h
         src/algo_trading/models/newton_interpolator.cc
         src/algo_trading/models/newton_interpolator.h
+        src/algo_trading/models/least_squares_approximator.cc
+        src/algo_trading/models/least_squares_approximator.h
 )
 
 target_link_libraries(A8_Algorithmic_trading_1
@@ -44,6 +46,8 @@ add_executable(A8_Algorithmic_trading_Tests
         src/algo_trading/models/newton_interpolator.cc
         src/algo_trading/models/newton_interpolator.h
         src/tests/newton_test.cc
+        src/algo_trading/models/least_squares_approximator.cc
+        src/algo_trading/models/least_squares_approximator.h
 )
 
 set_target_properties(A8_Algorithmic_trading_Tests PROPERTIES
