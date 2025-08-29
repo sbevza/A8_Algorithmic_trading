@@ -1,5 +1,8 @@
 #include "least_squares_approximator.h"
 
+#include <stdexcept>
+#include <algorithm>
+
 namespace s21 {
 
 LeastSquaresApproximator::LeastSquaresApproximator(const std::vector<SplinePoint>& points) {

@@ -16,7 +16,8 @@ SOURCES += \
     models/csv_parser.cc \
     models/trade_data.cc \
     models/cubic_spline_interpolator.cc \
-    models/newton_interpolator.cc
+    models/newton_interpolator.cc \
+    models/least_squares_approximator.cc
 
 
 HEADERS += \
@@ -27,7 +28,8 @@ HEADERS += \
     models/trade_data.h \
     models/cubic_spline_interpolator.h \
     models/spline_point.h \
-    models/newton_interpolator.h
+    models/newton_interpolator.h \
+    models/least_squares_approximator.h
 
 
 FORMS += \
