@@ -1,6 +1,9 @@
+// src/algo_trading/models/cubic_spline_interpolator.cc
+
 #include "cubic_spline_interpolator.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace s21 {
@@ -59,7 +62,7 @@ void CubicSplineInterpolator::buildSpline() {
   }
 
   c_coeffs_[n - 1] = 0.0;
-  for (int i = n - 2; i >= 0; --i) {
+  for (int i = n - 2; i >= 1; --i) {
     c_coeffs_[i] = z[i] - l[i] * c_coeffs_[i + 1];
   }
 
@@ -74,6 +77,10 @@ void CubicSplineInterpolator::buildSpline() {
 }
 
 double CubicSplineInterpolator::interpolate(double x_val) const {
+  if (!std::isfinite(x_val)) {
+    throw std::runtime_error("Interpolation point x is not finite.");
+  }
+
   if (x_val < xs_.front() || x_val > xs_.back()) {
     // return std::numeric_limits<double>::quiet_NaN();
     throw std::runtime_error("Interpolation point x is out of data range.");
@@ -85,9 +92,9 @@ double CubicSplineInterpolator::interpolate(double x_val) const {
   if (i >= xs_.size() - 1) {
     i = xs_.size() - 2;
   }
-  if (x_val == xs_.back() && xs_.size() > 1) {
-    i = xs_.size() - 2;
-  }
+  // if (x_val == xs_.back() && xs_.size() > 1) {
+  //   i = xs_.size() - 2;
+  // }
 
   const double dx = x_val - xs_[i];
   return a_coeffs_[i] + b_coeffs_[i] * dx + c_coeffs_[i] * dx * dx +

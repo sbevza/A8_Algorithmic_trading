@@ -140,3 +140,11 @@ TEST_F(CubicSplineTest, TwoPoints_Linear) {
   EXPECT_TRUE(almost_equal(spline.interpolate(1.0), 2.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(2.0), 4.0));
 }
+
+TEST_F(CubicSplineTest, Interpolate_InvalidInput) {
+  CubicSplineInterpolator spline(points_quadratic);
+
+  EXPECT_THROW(spline.interpolate(NAN), std::runtime_error);
+  EXPECT_THROW(spline.interpolate(INFINITY), std::runtime_error);
+  EXPECT_THROW(spline.interpolate(-INFINITY), std::runtime_error);
+}
