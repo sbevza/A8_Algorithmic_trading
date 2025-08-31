@@ -7,18 +7,17 @@
 namespace s21 {
 
 class LeastSquaresApproximator {
-
-public:
+ public:
   explicit LeastSquaresApproximator(const std::vector<SplinePoint>& points);
 
   void fit(int degree);
   [[nodiscard]] double predict(double x) const;
 
-private:
-std::vector<double> x_vals_;
+ private:
+  std::vector<double> x_vals_;
   std::vector<double> y_vals_;
-    std::vector<double> coefficients_;
-int degree_ = 1;
+  std::vector<double> coefficients_;
+  int degree_ = 1;
 };
 
 }  // namespace s21
