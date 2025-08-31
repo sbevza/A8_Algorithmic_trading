@@ -10,15 +10,17 @@ find_package(GTest REQUIRED)
 
 add_executable(A8_Algorithmic_trading_1
         src/algo_trading/main.cc
+        src/algo_trading/qcustomplot/qcustomplot.cc
         src/algo_trading/views/mainwindow.cc
         src/algo_trading/views/mainwindow.h
+
+        src/algo_trading/controllers/algo_trading_controller.cc
+        src/algo_trading/controllers/algo_trading_controller.h
+
         src/algo_trading/models/csv_parser.cc
         src/algo_trading/models/trade_data.cc
         src/algo_trading/models/csv_parser.h
         src/algo_trading/models/trade_data.h
-        src/algo_trading/controllers/algo_trading_controller.cc
-        src/algo_trading/controllers/algo_trading_controller.h
-        src/algo_trading/qcustomplot/qcustomplot.cc
         src/algo_trading/models/cubic_spline_interpolator.cc
         src/algo_trading/models/cubic_spline_interpolator.h
         src/algo_trading/models/newton_interpolator.cc
@@ -40,14 +42,11 @@ target_include_directories(A8_Algorithmic_trading_1 PRIVATE
 
 
 add_executable(A8_Algorithmic_trading_Tests
-        src/tests/spline_test.cc
         src/algo_trading/models/cubic_spline_interpolator.cc
-        src/algo_trading/models/cubic_spline_interpolator.h
         src/algo_trading/models/newton_interpolator.cc
-        src/algo_trading/models/newton_interpolator.h
-        src/tests/newton_test.cc
         src/algo_trading/models/least_squares_approximator.cc
-        src/algo_trading/models/least_squares_approximator.h
+        src/tests/spline_test.cc
+        src/tests/newton_test.cc
         src/tests/least_squares_approximator_test.cc
 )
 
