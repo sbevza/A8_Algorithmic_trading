@@ -48,6 +48,7 @@ add_executable(A8_Algorithmic_trading_Tests
         src/tests/newton_test.cc
         src/algo_trading/models/least_squares_approximator.cc
         src/algo_trading/models/least_squares_approximator.h
+        src/tests/least_squares_approximator_test.cc
 )
 
 set_target_properties(A8_Algorithmic_trading_Tests PROPERTIES

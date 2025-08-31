@@ -1,8 +1,5 @@
 #include "least_squares_approximator.h"
 
-#include <stdexcept>
-#include <algorithm>
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -10,7 +7,8 @@
 namespace s21 {
 
 LeastSquaresApproximator::LeastSquaresApproximator(
-    const std::vector<SplinePoint>& points) {
+    const std::vector<SplinePoint>& points)
+    : degree_(0) {
   if (points.empty()) {
     throw std::invalid_argument(
         "LeastSquaresApproximator: no points provided.");
@@ -25,6 +23,7 @@ LeastSquaresApproximator::LeastSquaresApproximator(
     x_vals_.push_back(p.x);
     y_vals_.push_back(p.y);
   }
+  coefficients_ = {0.0};
 }
 
 void LeastSquaresApproximator::fit(const int degree) {
@@ -32,7 +31,7 @@ void LeastSquaresApproximator::fit(const int degree) {
     throw std::runtime_error("Degree must be non-negative.");
   }
   if (degree >= static_cast<int>(x_vals_.size())) {
-    throw std::runtime_error("Degree too high for number of points.");
+    throw std::invalid_argument("Degree too high for number of points.");
   }
 
   degree_ = degree;
@@ -89,6 +88,10 @@ void LeastSquaresApproximator::fit(const int degree) {
 }
 
 double LeastSquaresApproximator::predict(const double x) const {
+  if (coefficients_.empty() || degree_ < 0) {
+    return 0.0;
+  }
+
   double result = 0.0;
   double power = 1.0;
   for (int i = 0; i <= degree_; ++i) {
