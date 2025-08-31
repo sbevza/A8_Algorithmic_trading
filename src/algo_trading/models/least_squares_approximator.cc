@@ -88,4 +88,14 @@ void LeastSquaresApproximator::fit(const int degree) {
   }
 }
 
+double LeastSquaresApproximator::predict(const double x) const {
+  double result = 0.0;
+  double power = 1.0;
+  for (int i = 0; i <= degree_; ++i) {
+    result += coefficients_[i] * power;
+    power *= x;
+  }
+  return result;
+}
+
 }  // namespace s21
