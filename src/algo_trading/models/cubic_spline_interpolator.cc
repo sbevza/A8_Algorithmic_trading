@@ -17,9 +17,9 @@ CubicSplineInterpolator::CubicSplineInterpolator(
 
   xs_.reserve(points.size());
   ys_.reserve(points.size());
-  for (const auto& p : points) {
-    xs_.push_back(p.x);
-    ys_.push_back(p.y);
+  for (const auto& [x, y] : points) {
+    xs_.push_back(x);
+    ys_.push_back(y);
   }
 
   for (size_t i = 0; i < xs_.size() - 1; ++i) {
@@ -55,14 +55,14 @@ void CubicSplineInterpolator::buildSpline() {
   z[0] = 0.0;
 
   for (size_t i = 1; i < n - 1; ++i) {
-    double denom = 2.0 * (h[i - 1] + h[i]) - h[i - 1] * l[i - 1];
+    const double denom = 2.0 * (h[i - 1] + h[i]) - h[i - 1] * l[i - 1];
     if (denom == 0) throw std::runtime_error("Singular system.");
     l[i] = h[i] / denom;
     z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / denom;
   }
 
   c_coeffs_[n - 1] = 0.0;
-  for (int i = n - 2; i >= 1; --i) {
+  for (size_t i = n - 2; i > 0; --i) {
     c_coeffs_[i] = z[i] - l[i] * c_coeffs_[i + 1];
   }
 
@@ -76,17 +76,16 @@ void CubicSplineInterpolator::buildSpline() {
   }
 }
 
-double CubicSplineInterpolator::interpolate(double x_val) const {
+double CubicSplineInterpolator::interpolate(const double x_val) const {
   if (!std::isfinite(x_val)) {
     throw std::runtime_error("Interpolation point x is not finite.");
   }
 
   if (x_val < xs_.front() || x_val > xs_.back()) {
-    // return std::numeric_limits<double>::quiet_NaN();
     throw std::runtime_error("Interpolation point x is out of data range.");
   }
 
-  auto it = std::upper_bound(xs_.begin(), xs_.end(), x_val);
+  const auto it = std::ranges::upper_bound(xs_, x_val);
   size_t i = std::distance(xs_.begin(), it) - 1;
 
   if (i >= xs_.size() - 1) {

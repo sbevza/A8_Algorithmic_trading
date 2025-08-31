@@ -65,5 +65,11 @@ target_include_directories(A8_Algorithmic_trading_Tests PRIVATE
         ${CMAKE_SOURCE_DIR}/src/algo_trading
 )
 
+include(GoogleTest)
+
 enable_testing()
-add_test(NAME interpolator_test COMMAND A8_Algorithmic_trading_Tests)
+
+gtest_discover_tests(A8_Algorithmic_trading_Tests
+        PROPERTIES
+        ENVIRONMENT "GTEST_COLOR=1"
+)

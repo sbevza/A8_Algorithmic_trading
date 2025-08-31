@@ -17,8 +17,7 @@ LeastSquaresApproximator::LeastSquaresApproximator(
   }
 
   auto sorted = points;
-  std::sort(
-      sorted.begin(), sorted.end(),
+  std::ranges::sort(sorted,
       [](const SplinePoint& a, const SplinePoint& b) { return a.x < b.x; });
 
   for (const auto& p : sorted) {
