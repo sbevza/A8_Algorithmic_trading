@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QFileDialog>
-#include <QFile>
 #include "../controllers/algo_trading_controller.h"
 
 QT_BEGIN_NAMESPACE

@@ -91,7 +91,10 @@ QVector<TradeData> CsvParser::Parse(const std::string& content) {
       data.clear();
       return data;
     }
-    auto timestamp = std::chrono::sys_days{ymd};
+    auto time_point = std::chrono::sys_days{ymd};
+    auto duration = time_point.time_since_epoch();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+    auto timestamp = static_cast<double>(seconds);
 
     bool price_ok = false;
     double price = 0.0;
@@ -110,7 +113,6 @@ QVector<TradeData> CsvParser::Parse(const std::string& content) {
       return data;
     }
 
-
     double weight = 1.0;
     if (parts.size() >= 3 && !parts[2].empty()) {
       try {
@@ -127,11 +129,7 @@ QVector<TradeData> CsvParser::Parse(const std::string& content) {
       }
     }
 
-    // data.append(TradeData(timestamp, price, weight));
-    qint64 secs = std::chrono::duration_cast<std::chrono::seconds>(timestamp.time_since_epoch()).count();
-    QDateTime dateTime = QDateTime::fromSecsSinceEpoch(secs, Qt::UTC);
-    // Убрать это !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    data.append(TradeData(dateTime, price, weight));
+    data.append(TradeData(timestamp, price, weight));
   }
 
   error_message_ = "No valid data lines were parsed.";

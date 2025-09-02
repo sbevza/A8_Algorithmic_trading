@@ -21,7 +21,8 @@ bool AlgoTradingController::loadTradingDataFromCsv(const QString &content) {
   auto parsed_data = parser_.Parse(FileReader::ReadFile(path));
 
   if (parsed_data.isEmpty()) {
-    qWarning() << "Failed to parse CSV:" << QString::fromStdString(parser_.GetError());
+    qWarning() << "Failed to parse CSV:"
+               << QString::fromStdString(parser_.GetError());
     return false;
   }
 
@@ -42,6 +43,7 @@ int AlgoTradingController::getDataCount() const { return tradeData_.size(); }
 QString AlgoTradingController::getLastError() const {
   return QString::fromStdString(parser_.GetError());
 }
+
 void AlgoTradingController::buildSplineFromLoadedData() {
   // 1.
   if (tradeData_.size() < 2) {  // Spline needs 2 points
@@ -58,7 +60,7 @@ void AlgoTradingController::buildSplineFromLoadedData() {
 
   for (const auto &td : tradeData_) {
     spline_points.push_back(
-        {static_cast<double>(td.timestamp.toSecsSinceEpoch()), td.close});
+        {td.timestamp, td.close});
   }
 
   // 3.
@@ -107,7 +109,7 @@ void AlgoTradingController::buildNewtonPolynomial(int degree) {
   points.reserve(tradeData_.size());
   for (const auto &td : tradeData_) {
     points.push_back(
-        {static_cast<double>(td.timestamp.toSecsSinceEpoch()), td.close});
+        {td.timestamp, td.close});
   }
 
   try {

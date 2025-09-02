@@ -98,69 +98,13 @@ void MainWindow::on_clean_button_clicked() {
   ui->plotWidget->replot();
 }
 
-// void MainWindow::on_LoadDataCsv_clicked() {
-//   on_clean_button_clicked();
-//   QString defaultDir = "../materials";
-//   QString fileName = QFileDialog::getOpenFileName(
-//       this, tr("Открыть CSV файл с торговыми данными"), defaultDir,
-//       tr("CSV файлы (*.csv);;Все файлы (*)"));
-//
-//   if (fileName.isEmpty()) return;
-//
-//   QFile file(fileName);
-//   if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-//     QMessageBox::warning(this, tr("Ошибка"),
-//                          tr("Не удалось открыть файл:\n%1").arg(fileName));
-//     setWindowTitle(windowTitle().section(" — ", 0, 0) +
-//                    " — Ошибка загрузки данных, попробуйте снова");
-//     return;
-//   }
-//
-//   QTextStream in(&file);
-//   QString content = in.readAll();
-//   file.close();
-//
-//   if (controller_->loadTradingDataFromCsv(content)) {
-//     int count = controller_->getDataCount();
-//     if (count == 0) {
-//       QMessageBox::warning(this, tr("Ошибка"),
-//                            tr("Файл загружен, но данные не найдены"));
-//       setWindowTitle(windowTitle().section(" — ", 0, 0) +
-//                      " — Ошибка загрузки данных, попробуйте снова");
-//       return;
-//     }
-//
-//     QFileInfo fileInfo(fileName);
-//     QString shortFileName = fileInfo.fileName();
-//     QString baseTitle =
-//         windowTitle().section(" — ", 0, 0);  // Исходное название до " — "
-//     setWindowTitle(
-//         QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
-//             .arg(baseTitle, shortFileName)
-//             .arg(count));
-//
-//     ui->numPoints->setMinimum(count);
-//   } else {
-//     QMessageBox::warning(this, tr("Ошибка"),
-//                          tr("Ошибка при парсинге CSV-файла"));
-//     setWindowTitle(windowTitle().section(" — ", 0, 0) +
-//                    " — Ошибка загрузки данных, попробуйте снова");
-//   }
-//
-//   updateUiState();
-//   setupDateTimeEditLimits();
-// }
-
 void MainWindow::on_LoadDataCsv_clicked() {
   on_clean_button_clicked();
 
   QString defaultDir = "../materials";
   QString fileName = QFileDialog::getOpenFileName(
-      this,
-      tr("Открыть CSV файл с торговыми данными"),
-      defaultDir,
-      tr("CSV файлы (*.csv);;Все файлы (*)")
-  );
+      this, tr("Открыть CSV файл с торговыми данными"), defaultDir,
+      tr("CSV файлы (*.csv);;Все файлы (*)"));
 
   if (fileName.isEmpty()) {
     return;
@@ -169,19 +113,24 @@ void MainWindow::on_LoadDataCsv_clicked() {
   if (controller_->loadTradingDataFromCsv(fileName)) {
     int count = controller_->getDataCount();
     if (count == 0) {
-      QMessageBox::warning(this, tr("Ошибка"), tr("Файл загружен, но данные не найдены"));
+      QMessageBox::warning(this, tr("Ошибка"),
+                           tr("Файл загружен, но данные не найдены"));
     } else {
       QFileInfo fileInfo(fileName);
       QString shortFileName = fileInfo.fileName();
       QString baseTitle = windowTitle().section(" — ", 0, 0);
-      setWindowTitle(QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
-                         .arg(baseTitle, shortFileName).arg(count));
+      setWindowTitle(
+          QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
+              .arg(baseTitle, shortFileName)
+              .arg(count));
 
       ui->numPoints->setMinimum(count);
     }
   } else {
-    QMessageBox::warning(this, tr("Ошибка"), tr("Ошибка при загрузке или парсинге файла"));
-    setWindowTitle(windowTitle().section(" — ", 0, 0) + " — Ошибка загрузки данных");
+    QMessageBox::warning(this, tr("Ошибка"),
+                         tr("Ошибка при загрузке или парсинге файла"));
+    setWindowTitle(windowTitle().section(" — ", 0, 0) +
+                   " — Ошибка загрузки данных");
   }
 
   updateUiState();
@@ -263,8 +212,10 @@ void MainWindow::setupDateTimeEditLimits() {
   auto data = controller_->getTradeData();
   if (data.isEmpty()) return;
 
-  QDateTime minDate = data.first().timestamp;
-  QDateTime maxDate = data.last().timestamp;
+  QDateTime minDate = QDateTime::fromSecsSinceEpoch(
+      static_cast<qint64>(data.first().timestamp));
+  QDateTime maxDate =
+      QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.last().timestamp));
 
   ui->dateTimeEdit->setDateTimeRange(minDate, maxDate);
   ui->dateTimeEdit->setDateTime(minDate);
@@ -315,8 +266,8 @@ void MainWindow::plotInterpolatedFunction(
     return;
   }
 
-  double xStart = data.first().timestamp.toSecsSinceEpoch();
-  double xEnd = data.last().timestamp.toSecsSinceEpoch();
+  double xStart = data.first().timestamp;
+  double xEnd = data.last().timestamp;
 
   QVector<double> x = generateX(xStart, xEnd, pointCount);
   QVector<double> y;
