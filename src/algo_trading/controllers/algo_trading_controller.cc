@@ -1,29 +1,36 @@
-// algo_trading_controller.cc
+// src/algo_trading/controllers/algo_trading_controller.cc
+
 #include "algo_trading_controller.h"
 
 #include <QDebug>
 
+#include "models/file_reader.h"
+
 namespace s21 {
 AlgoTradingController::AlgoTradingController(QObject *parent)
-    : QObject(parent) {
-  // Ничего не нужно делать — parser_ уже создан
-}
+    : QObject(parent) {}
 
 bool AlgoTradingController::loadTradingDataFromCsv(const QString &content) {
-    tradeData_.clear();
-    auto parsed_data = parser_.Parse(content);
+  const std::string path = content.toStdString();
+  if (!FileReader::FileExists(path)) {
+    qWarning() << "File does not exist: " << content;
+    return false;
+  }
 
-    if (parsed_data.isEmpty()) {
-        qWarning() << "Failed to parse CSV:" << parser_.GetError();
-        return false;
-    }
+  tradeData_.clear();
+  auto parsed_data = parser_.Parse(FileReader::ReadFile(path));
 
-    tradeData_ = parsed_data;
-    qDebug() << "Successfully loaded" << tradeData_.size() << "records";
+  if (parsed_data.isEmpty()) {
+    qWarning() << "Failed to parse CSV:" << QString::fromStdString(parser_.GetError());
+    return false;
+  }
 
-    buildSplineFromLoadedData();
+  tradeData_ = parsed_data;
+  qDebug() << "Successfully loaded" << tradeData_.size() << "records";
 
-    return true;
+  buildSplineFromLoadedData();
+
+  return true;
 }
 
 const QVector<TradeData> &AlgoTradingController::getTradeData() const {
@@ -33,7 +40,7 @@ const QVector<TradeData> &AlgoTradingController::getTradeData() const {
 int AlgoTradingController::getDataCount() const { return tradeData_.size(); }
 
 QString AlgoTradingController::getLastError() const {
-  return parser_.GetError();
+  return QString::fromStdString(parser_.GetError());
 }
 void AlgoTradingController::buildSplineFromLoadedData() {
   // 1.
@@ -66,7 +73,8 @@ void AlgoTradingController::buildSplineFromLoadedData() {
   }
 }
 
-double AlgoTradingController::getInterpolatedValue(    const QDateTime &dateTime) const {
+double AlgoTradingController::getInterpolatedValue(
+    const QDateTime &dateTime) const {
   if (!spline_interpolator_) {
     qWarning() << "Attempted to interpolate, but spline is not built.";
     return std::numeric_limits<double>::quiet_NaN();
@@ -80,49 +88,50 @@ double AlgoTradingController::getInterpolatedValue(    const QDateTime &dateTime
 }
 
 void AlgoTradingController::buildNewtonPolynomial(int degree) {
-    if (tradeData_.size() < 2) {
-        qWarning() << "Not enough data points to build Newton polynomial (need at least 2). Current count:" << tradeData_.size();
-        newton_interpolator_.reset();
-        return;
-    }
+  if (tradeData_.size() < 2) {
+    qWarning() << "Not enough data points to build Newton polynomial (need at "
+                  "least 2). Current count:"
+               << tradeData_.size();
+    newton_interpolator_.reset();
+    return;
+  }
 
-    if (degree < 1) {
-        qWarning() << "Degree must be at least 1. Got:" << degree;
-        newton_interpolator_.reset();
-        return;
-    }
+  if (degree < 1) {
+    qWarning() << "Degree must be at least 1. Got:" << degree;
+    newton_interpolator_.reset();
+    return;
+  }
 
-    // Преобразуем данные
-    std::vector<s21::SplinePoint> points;
-    points.reserve(tradeData_.size());
-    for (const auto& td : tradeData_) {
-        points.push_back({
-            static_cast<double>(td.timestamp.toSecsSinceEpoch()),
-            td.close
-        });
-    }
+  // Преобразуем данные? Опрять пребразуем????
+  std::vector<s21::SplinePoint> points;
+  points.reserve(tradeData_.size());
+  for (const auto &td : tradeData_) {
+    points.push_back(
+        {static_cast<double>(td.timestamp.toSecsSinceEpoch()), td.close});
+  }
 
-    // Построим интерполятор
-    try {
-        newton_interpolator_ = std::make_unique<s21::NewtonInterpolator>(points, degree);
-        qDebug() << "Newton polynomial (degree" << degree << ") built successfully.";
-    } catch (const std::exception& e) {
-        qCritical() << "Error building Newton polynomial:" << e.what();
-        newton_interpolator_.reset();
-    }
+  try {
+    newton_interpolator_ =
+        std::make_unique<s21::NewtonInterpolator>(points, degree);
+    qDebug() << "Newton polynomial (degree" << degree
+             << ") built successfully.";
+  } catch (const std::exception &e) {
+    qCritical() << "Error building Newton polynomial:" << e.what();
+    newton_interpolator_.reset();
+  }
 }
 
-double AlgoTradingController::getInterpolatedValueNewton(const QDateTime& dateTime, int degree) {
-    // Проверка корректности степени
-    if (degree < 1 || degree >= static_cast<int>(tradeData_.size())) {
-        qWarning() << "Invalid degree for Newton interpolation:" << degree;
-        return std::numeric_limits<double>::quiet_NaN();
-    }
+double AlgoTradingController::getInterpolatedValueNewton(
+    const QDateTime &dateTime, int degree) {
+  if (degree < 1 || degree >= static_cast<int>(tradeData_.size())) {
+    qWarning() << "Invalid degree for Newton interpolation:" << degree;
+    return std::numeric_limits<double>::quiet_NaN();
+  }
 
-    buildNewtonPolynomial(degree);
+  buildNewtonPolynomial(degree);
 
-    double x = static_cast<double>(dateTime.toSecsSinceEpoch());
-    return newton_interpolator_->interpolate(x);
+  double x = static_cast<double>(dateTime.toSecsSinceEpoch());
+  return newton_interpolator_->interpolate(x);
 }
 
 }  // namespace s21

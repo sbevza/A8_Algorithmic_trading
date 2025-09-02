@@ -17,7 +17,7 @@ CubicSplineInterpolator::CubicSplineInterpolator(
 
   xs_.reserve(points.size());
   ys_.reserve(points.size());
-  for (const auto& [x, y] : points) {
+  for (const auto& [x, y, z] : points) {
     xs_.push_back(x);
     ys_.push_back(y);
   }

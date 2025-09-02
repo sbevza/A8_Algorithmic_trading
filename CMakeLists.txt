@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.23)
 project(A8_Algorithmic_trading_1)
 
 set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
@@ -27,6 +28,8 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/models/newton_interpolator.h
         src/algo_trading/models/least_squares_approximator.cc
         src/algo_trading/models/least_squares_approximator.h
+        src/algo_trading/models/file_reader.cc
+        src/algo_trading/models/file_reader.h
 )
 
 target_link_libraries(A8_Algorithmic_trading_1

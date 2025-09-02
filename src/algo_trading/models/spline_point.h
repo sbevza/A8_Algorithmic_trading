@@ -7,6 +7,7 @@ namespace s21 {
 struct SplinePoint {
   double x;
   double y;
+  double weight = 1.0;
 };
 
 }  // namespace s21
