@@ -36,28 +36,6 @@ std::vector<std::string> CsvParser::Split(const std::string& s,
   return tokens;
 }
 
-// bool CsvParser::ParseDate(const std::string& date_str, std::tm& tm) {
-//   int year, month, day;
-//   if (std::sscanf(date_str.c_str(), "%d-%d-%d", &year, &month, &day) != 3) {
-//     return false;
-//   }
-//
-//   if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
-//     return false;
-//   }
-//
-//   tm.tm_year = year - 1900;
-//   tm.tm_mon = month - 1;
-//   tm.tm_mday = day;
-//   tm.tm_hour = 0;
-//   tm.tm_min = 0;
-//   tm.tm_sec = 0;
-//   tm.tm_isdst = -1;
-//
-//   std::time_t t = std::mktime(&tm);
-//   return t != -1;
-// }
-
 QVector<TradeData> CsvParser::Parse(const std::string& content) {
   error_message_.clear();
   QVector<TradeData> data;

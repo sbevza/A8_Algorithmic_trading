@@ -16,7 +16,6 @@ class CsvParser {
   std::string error_message_;
   static bool IsHeader(const std::string& line);
   static std::vector<std::string> Split(const std::string& s, char delimiter);
-  // static bool ParseDate(const std::string& date_str, std::tm& tm);
 };
 
 }  // namespace s21

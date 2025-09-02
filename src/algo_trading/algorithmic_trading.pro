@@ -10,6 +10,7 @@ CONFIG += c++20
 
 SOURCES += \
     main.cc \
+    models/file_reader.cc \
     views/mainwindow.cc \
     controllers/algo_trading_controller.cc \
     qcustomplot/qcustomplot.cc \
@@ -21,6 +22,7 @@ SOURCES += \
 
 
 HEADERS += \
+    models/file_reader.h \
     views/mainwindow.h \
     controllers/algo_trading_controller.h \
     qcustomplot/qcustomplot.h \
