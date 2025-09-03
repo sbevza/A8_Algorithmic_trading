@@ -2,13 +2,13 @@
 #define A8_ALGORITHMIC_TRADING_1_LEAST_SQUARES_APPROXIMATOR_H
 #include <vector>
 
-#include "spline_point.h"
+#include "trade_data.h"
 
 namespace s21 {
 
 class LeastSquaresApproximator {
  public:
-  explicit LeastSquaresApproximator(const std::vector<SplinePoint>& points);
+  explicit LeastSquaresApproximator(const std::vector<TradeData>& points);
 
   void fit(int degree);
   [[nodiscard]] double predict(double x) const;

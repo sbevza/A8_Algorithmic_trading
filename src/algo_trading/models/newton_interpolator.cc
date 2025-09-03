@@ -8,7 +8,7 @@
 
 namespace s21 {
 
-NewtonInterpolator::NewtonInterpolator(const std::vector<SplinePoint>& points,
+NewtonInterpolator::NewtonInterpolator(const std::vector<TradeData>& points,
                                        const int degree)
     : degree_(degree) {
   if (points.empty()) {
@@ -30,11 +30,12 @@ NewtonInterpolator::NewtonInterpolator(const std::vector<SplinePoint>& points,
 
   auto selected = selectPointsUniformly(points, required_points);
 
-  std::ranges::sort(selected,
-      [](const SplinePoint& a, const SplinePoint& b) { return a.x < b.x; });
+  std::ranges::sort(selected, [](const TradeData& a, const TradeData& b) {
+    return a.timestamp < b.timestamp;
+  });
 
   for (size_t i = 0; i < selected.size() - 1; ++i) {
-    if (selected[i].x == selected[i + 1].x) {
+    if (selected[i].timestamp == selected[i + 1].timestamp) {
       throw std::invalid_argument(
           "NewtonInterpolator: duplicate x-values in selected points.");
     }
@@ -43,8 +44,8 @@ NewtonInterpolator::NewtonInterpolator(const std::vector<SplinePoint>& points,
   x_vals_.clear();
   y_vals_.clear();
   for (const auto& p : selected) {
-    x_vals_.push_back(p.x);
-    y_vals_.push_back(p.y);
+    x_vals_.push_back(p.timestamp);
+    y_vals_.push_back(p.close);
   }
 
   const size_t n = x_vals_.size();
@@ -86,17 +87,17 @@ double NewtonInterpolator::interpolate(const double x_val) const {
   return result;
 }
 
-std::vector<SplinePoint> NewtonInterpolator::selectPointsUniformly(
-    const std::vector<SplinePoint>& points, const int n) {
+std::vector<TradeData> NewtonInterpolator::selectPointsUniformly(
+    const std::vector<TradeData>& points, const int n) {
   if (n >= static_cast<int>(points.size())) {
     return points;
   }
 
-  std::vector<SplinePoint> result;
+  std::vector<TradeData> result;
   result.reserve(n);
 
-  const double x_min = points.front().x;
-  const double x_max = points.back().x;
+  const double x_min = points.front().timestamp;
+  const double x_max = points.back().timestamp;
 
   for (int i = 0; i < n; ++i) {
     const double t = (n == 1) ? 0.0 : static_cast<double>(i) / (n - 1);
@@ -104,15 +105,15 @@ std::vector<SplinePoint> NewtonInterpolator::selectPointsUniformly(
 
     auto it = std::lower_bound(
         points.begin(), points.end(), target_x,
-        [](const SplinePoint& a, double x) { return a.x < x; });
+        [](const TradeData& a, double x) { return a.timestamp < x; });
 
     if (it == points.end()) {
       result.push_back(points.back());
     } else if (it == points.begin()) {
       result.push_back(points.front());
     } else {
-      const double diff_next = std::abs(it->x - target_x);
-      const double diff_prev = std::abs((it - 1)->x - target_x);
+      const double diff_next = std::abs(it->timestamp - target_x);
+      const double diff_prev = std::abs((it - 1)->timestamp - target_x);
       result.push_back(diff_next < diff_prev ? *it : *(it - 1));
     }
   }

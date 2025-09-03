@@ -45,7 +45,6 @@ QString AlgoTradingController::getLastError() const {
 }
 
 void AlgoTradingController::buildSplineFromLoadedData() {
-  // 1.
   if (tradeData_.size() < 2) {  // Spline needs 2 points
     qWarning() << "Not enough data points to build a spline (need at least 2). "
                   "Current count:"
@@ -54,20 +53,10 @@ void AlgoTradingController::buildSplineFromLoadedData() {
     return;
   }
 
-  // 2.
-  std::vector<s21::SplinePoint> spline_points;
-  spline_points.reserve(tradeData_.size());
-
-  for (const auto &td : tradeData_) {
-    spline_points.push_back(
-        {td.timestamp, td.close});
-  }
-
-  // 3.
   try {
     spline_interpolator_ =
-        std::make_unique<s21::CubicSplineInterpolator>(spline_points);
-    qDebug() << "Cubic spline successfully built with" << spline_points.size()
+        std::make_unique<s21::CubicSplineInterpolator>(tradeData_);
+    qDebug() << "Cubic spline successfully built with" << tradeData_.size()
              << "points.";
   } catch (const std::exception &e) {
     qCritical() << "Error building cubic spline:" << e.what();
@@ -104,17 +93,9 @@ void AlgoTradingController::buildNewtonPolynomial(int degree) {
     return;
   }
 
-  // Преобразуем данные? Опрять пребразуем????
-  std::vector<s21::SplinePoint> points;
-  points.reserve(tradeData_.size());
-  for (const auto &td : tradeData_) {
-    points.push_back(
-        {td.timestamp, td.close});
-  }
-
   try {
     newton_interpolator_ =
-        std::make_unique<s21::NewtonInterpolator>(points, degree);
+        std::make_unique<s21::NewtonInterpolator>(tradeData_, degree);
     qDebug() << "Newton polynomial (degree" << degree
              << ") built successfully.";
   } catch (const std::exception &e) {

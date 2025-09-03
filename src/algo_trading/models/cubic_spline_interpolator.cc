@@ -9,7 +9,7 @@
 namespace s21 {
 
 CubicSplineInterpolator::CubicSplineInterpolator(
-    const std::vector<SplinePoint>& points) {
+    const std::vector<TradeData>& points) {
   if (points.size() < 2) {
     throw std::runtime_error(
         "CubicSplineInterpolator requires at least 2 points.");

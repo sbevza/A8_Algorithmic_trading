@@ -9,7 +9,7 @@
 namespace s21 {
 
 LeastSquaresApproximator::LeastSquaresApproximator(
-    const std::vector<SplinePoint>& points)
+    const std::vector<TradeData>& points)
     : degree_(0) {
   if (points.empty()) {
     throw std::invalid_argument(
@@ -18,11 +18,11 @@ LeastSquaresApproximator::LeastSquaresApproximator(
 
   auto sorted = points;
   std::ranges::sort(sorted,
-      [](const SplinePoint& a, const SplinePoint& b) { return a.x < b.x; });
+      [](const TradeData& a, const TradeData& b) { return a.timestamp < b.timestamp; });
 
   for (const auto& p : sorted) {
-    x_vals_.push_back(p.x);
-    y_vals_.push_back(p.y);
+    x_vals_.push_back(p.timestamp);
+    y_vals_.push_back(p.close);
   }
   coefficients_ = {0.0};
 }

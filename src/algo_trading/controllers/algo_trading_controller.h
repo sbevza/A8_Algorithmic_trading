@@ -1,11 +1,12 @@
-// algo_trading_controller.h
+// src/algo_trading/controllers/algo_trading_controller.h
+
 #ifndef SRC_CONTROLLERS_ALGO_TRADING_CONTROLLER_H_
 #define SRC_CONTROLLERS_ALGO_TRADING_CONTROLLER_H_
 
 #include <QObject>
 #include <QVector>
 
-#include "../models/csv_parser.h"
+#include "models/csv_parser.h"
 #include "models/cubic_spline_interpolator.h"
 #include "models/newton_interpolator.h"
 

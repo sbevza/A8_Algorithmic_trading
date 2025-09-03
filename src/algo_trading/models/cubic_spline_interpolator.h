@@ -2,13 +2,13 @@
 #define CUBIC_SPLINE_INTERPOLATOR_H
 #include <vector>
 
-#include "spline_point.h"
+#include "trade_data.h"
 
 namespace s21 {
 
 class CubicSplineInterpolator {
  public:
-  explicit CubicSplineInterpolator(const std::vector<SplinePoint>& points);
+  explicit CubicSplineInterpolator(const std::vector<TradeData>& points);
   [[nodiscard]] double interpolate(double x_val) const;
 
  private:
