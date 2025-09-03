@@ -210,12 +210,12 @@ QString MainWindow::createGraphLabel(const QString& type, int degree,
 
 void MainWindow::setupDateTimeEditLimits() {
   auto data = controller_->getTradeData();
-  if (data.isEmpty()) return;
+  if (data.empty()) return;
 
   QDateTime minDate = QDateTime::fromSecsSinceEpoch(
-      static_cast<qint64>(data.first().timestamp));
+      static_cast<qint64>(data.front().timestamp));
   QDateTime maxDate =
-      QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.last().timestamp));
+      QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.back().timestamp));
 
   ui->dateTimeEdit->setDateTimeRange(minDate, maxDate);
   ui->dateTimeEdit->setDateTime(minDate);
@@ -266,8 +266,8 @@ void MainWindow::plotInterpolatedFunction(
     return;
   }
 
-  double xStart = data.first().timestamp;
-  double xEnd = data.last().timestamp;
+  double xStart = data.front().timestamp;
+  double xEnd = data.back().timestamp;
 
   QVector<double> x = generateX(xStart, xEnd, pointCount);
   QVector<double> y;

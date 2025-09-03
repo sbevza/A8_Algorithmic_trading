@@ -18,17 +18,17 @@ class AlgoTradingController : public QObject {
   explicit AlgoTradingController(QObject* parent = nullptr);
 
   bool loadTradingDataFromCsv(const QString& content);
-  const QVector<TradeData>& getTradeData() const;
-  int getDataCount() const;
-  QString getLastError() const;
+  [[nodiscard]] const std::vector<TradeData>& getTradeData() const;
+  [[nodiscard]] size_t getDataCount() const;
+  [[nodiscard]] QString getLastError() const;
 
   void buildSplineFromLoadedData();
-  double getInterpolatedValue(const QDateTime &dateTime) const;
+  [[nodiscard]] double getInterpolatedValue(const QDateTime &dateTime) const;
 
   void buildNewtonPolynomial(int degree);
   double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
  private:
-  QVector<TradeData> tradeData_;
+  std::vector<TradeData> tradeData_;
   std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
   std::unique_ptr<s21::NewtonInterpolator> newton_interpolator_;
   CsvParser parser_;

@@ -1,7 +1,6 @@
 #ifndef SRC_MODELS_CSV_PARSER_H_
 #define SRC_MODELS_CSV_PARSER_H_
 
-#include <QVector>
 
 #include "trade_data.h"
 
@@ -9,7 +8,7 @@ namespace s21 {
 
 class CsvParser {
  public:
-  QVector<TradeData> Parse(const std::string& content);
+  std::vector<TradeData> Parse(const std::string& content);
   [[nodiscard]] std::string GetError() const;
 
  private:

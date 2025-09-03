@@ -20,7 +20,7 @@ bool AlgoTradingController::loadTradingDataFromCsv(const QString &content) {
   tradeData_.clear();
   auto parsed_data = parser_.Parse(FileReader::ReadFile(path));
 
-  if (parsed_data.isEmpty()) {
+  if (parsed_data.empty()) {
     qWarning() << "Failed to parse CSV:"
                << QString::fromStdString(parser_.GetError());
     return false;
@@ -34,11 +34,11 @@ bool AlgoTradingController::loadTradingDataFromCsv(const QString &content) {
   return true;
 }
 
-const QVector<TradeData> &AlgoTradingController::getTradeData() const {
+const std::vector<TradeData> &AlgoTradingController::getTradeData() const {
   return tradeData_;
 }
 
-int AlgoTradingController::getDataCount() const { return tradeData_.size(); }
+size_t AlgoTradingController::getDataCount() const { return tradeData_.size(); }
 
 QString AlgoTradingController::getLastError() const {
   return QString::fromStdString(parser_.GetError());
