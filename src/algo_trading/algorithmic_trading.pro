@@ -29,7 +29,6 @@ HEADERS += \
     models/csv_parser.h \
     models/trade_data.h \
     models/cubic_spline_interpolator.h \
-    models/spline_point.h \
     models/newton_interpolator.h \
     models/least_squares_approximator.h
 
