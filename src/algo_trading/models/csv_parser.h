@@ -14,7 +14,8 @@ class CsvParser {
  private:
   std::string error_message_;
   static bool IsHeader(const std::string& line);
-  static std::vector<std::string> Split(const std::string& s, char delimiter);
+  static std::vector<std::string_view> Split(const std::string_view& s);
+  static std::string_view Trim(std::string_view sv);
 };
 
 }  // namespace s21

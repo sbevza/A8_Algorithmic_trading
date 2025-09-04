@@ -11,24 +11,30 @@
 
 namespace s21 {
 
-std::vector<std::string> CsvParser::Split(const std::string& s,
-                                          char delimiter) {
-  std::vector<std::string> tokens;
-  std::string token;
-  std::istringstream tokenStream(s);
-  while (std::getline(tokenStream, token, delimiter)) {
-    size_t start = token.find_first_not_of(" \t\r\n");
-    size_t end = token.find_last_not_of(" \t\r\n");
-    if (start != std::string::npos && end != std::string::npos) {
-      token = token.substr(start, end - start + 1);
-    } else {
-      token.clear();
-    }
+std::vector<std::string_view> CsvParser::Split(const std::string_view& s) {
+  std::vector<std::string_view> tokens;
+  size_t start = 0;
+
+  while (start < s.size()) {
+    auto end = s.find(',', start);
+    if (end == std::string_view::npos) end = s.size();
+
+    auto token = s.substr(start, end - start);
+    token = Trim(token);
     if (!token.empty()) {
       tokens.push_back(token);
     }
+
+    start = end + 1;
   }
   return tokens;
+}
+
+std::string_view CsvParser::Trim(const std::string_view sv) {
+  const auto start = sv.find_first_not_of(" \t\r\n");
+  if (start == std::string_view::npos) return {};
+  const auto end = sv.find_last_not_of(" \t\r\n");
+  return sv.substr(start, (end - start + 1));
 }
 
 std::vector<TradeData> CsvParser::Parse(const std::string& content) {
@@ -65,7 +71,7 @@ std::vector<TradeData> CsvParser::Parse(const std::string& content) {
 
   for (size_t i = start_index; i < lines.size(); ++i) {
     std::string line = lines[i];
-    auto parts = Split(line, ',');
+    auto parts = Split(line);
 
     if (parts.size() < 2) {
       error_message_ =
@@ -75,7 +81,7 @@ std::vector<TradeData> CsvParser::Parse(const std::string& content) {
       return data;
     }
 
-    std::istringstream is(parts[0]);
+    std::istringstream is{std::string{parts[0]}};
     int year, month, day;
     char dash;
     is >> year >> dash >> month >> dash >> day;
@@ -97,7 +103,7 @@ std::vector<TradeData> CsvParser::Parse(const std::string& content) {
     bool price_ok = false;
     double price = 0.0;
     try {
-      price = std::stod(parts[1]);
+      price = std::stod(std::string(parts[1]));
       if (std::isnan(price) || std::isinf(price))
         throw std::invalid_argument("nan or inf");
       price_ok = true;
@@ -116,7 +122,7 @@ std::vector<TradeData> CsvParser::Parse(const std::string& content) {
     double weight = 1.0;
     if (parts.size() >= 3 && !parts[2].empty()) {
       try {
-        double parsed_weight = std::stod(parts[2]);
+        double parsed_weight = std::stod(std::string(parts[2]));
         if (!std::isnan(parsed_weight) && !std::isinf(parsed_weight) &&
             parsed_weight >= 0) {
           weight = parsed_weight;
