@@ -10,15 +10,15 @@ namespace s21 {
 AlgoTradingController::AlgoTradingController(QObject *parent)
     : QObject(parent) {}
 
-bool AlgoTradingController::loadTradingDataFromCsv(const QString &content) {
-  const std::string path = content.toStdString();
+bool AlgoTradingController::loadTradingDataFromCsv(const QString &filepath) {
+  const std::string path = filepath.toStdString();
   if (!FileReader::FileExists(path)) {
-    qWarning() << "File does not exist: " << content;
+    qWarning() << "File does not exist: " << filepath;
     return false;
   }
 
   tradeData_.clear();
-  auto parsed_data = parser_.Parse(FileReader::ReadFile(path));
+  const auto parsed_data = parser_.Parse(FileReader::ReadFile(path));
 
   if (parsed_data.empty()) {
     qWarning() << "Failed to parse CSV:"
@@ -73,7 +73,7 @@ double AlgoTradingController::getInterpolatedValue(
 
   // Владос, тут какая-то ерунда, всё время приходится в секунды конвертить!!!!!
   // Может сразу в парсинге в секундах сохранять????????
-  double x_val = static_cast<double>(dateTime.toSecsSinceEpoch());
+  auto x_val = static_cast<double>(dateTime.toSecsSinceEpoch());
 
   return spline_interpolator_->interpolate(x_val);
 }
@@ -113,7 +113,7 @@ double AlgoTradingController::getInterpolatedValueNewton(
 
   buildNewtonPolynomial(degree);
 
-  double x = static_cast<double>(dateTime.toSecsSinceEpoch());
+  const auto x = static_cast<double>(dateTime.toSecsSinceEpoch());
   return newton_interpolator_->interpolate(x);
 }
 

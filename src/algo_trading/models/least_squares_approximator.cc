@@ -17,12 +17,14 @@ LeastSquaresApproximator::LeastSquaresApproximator(
   }
 
   auto sorted = points;
-  std::ranges::sort(sorted,
-      [](const TradeData& a, const TradeData& b) { return a.timestamp < b.timestamp; });
+  std::ranges::sort(sorted, [](const TradeData& a, const TradeData& b) {
+    return a.timestamp < b.timestamp;
+  });
 
-  for (const auto& p : sorted) {
-    x_vals_.push_back(p.timestamp);
-    y_vals_.push_back(p.close);
+  for (const auto& td : sorted) {
+    x_vals_.push_back(td.timestamp);
+    y_vals_.push_back(td.close);
+    weights_.push_back(td.weight);
   }
   coefficients_ = {0.0};
 }
@@ -46,13 +48,13 @@ void LeastSquaresApproximator::fit(const int degree) {
     for (int j = 0; j < m; ++j) {
       double sum = 0.0;
       for (int k = 0; k < n; ++k) {
-        sum += std::pow(x_vals_[k], i + j);
+        sum += weights_[k] * std::pow(x_vals_[k], i + j);
       }
       A[i][j] = sum;
     }
     double sum = 0.0;
     for (int k = 0; k < n; ++k) {
-      sum += y_vals_[k] * std::pow(x_vals_[k], i);
+      sum += weights_[k] * y_vals_[k] * std::pow(x_vals_[k], i);
     }
     B[i] = sum;
   }

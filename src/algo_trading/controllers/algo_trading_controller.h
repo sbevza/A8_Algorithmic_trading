@@ -18,7 +18,7 @@ class AlgoTradingController : public QObject {
  public:
   explicit AlgoTradingController(QObject* parent = nullptr);
 
-  bool loadTradingDataFromCsv(const QString& content);
+  bool loadTradingDataFromCsv(const QString& filepath);
   [[nodiscard]] const std::vector<TradeData>& getTradeData() const;
   [[nodiscard]] size_t getDataCount() const;
   [[nodiscard]] QString getLastError() const;

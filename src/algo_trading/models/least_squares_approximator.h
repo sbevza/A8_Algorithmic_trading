@@ -16,6 +16,7 @@ class LeastSquaresApproximator {
  private:
   std::vector<double> x_vals_;
   std::vector<double> y_vals_;
+  std::vector<double> weights_;
   std::vector<double> coefficients_;
   int degree_ = 1;
 };
