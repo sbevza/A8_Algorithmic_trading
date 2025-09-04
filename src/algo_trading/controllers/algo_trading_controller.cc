@@ -71,9 +71,7 @@ double AlgoTradingController::getInterpolatedValue(
     return std::numeric_limits<double>::quiet_NaN();
   }
 
-  // Владос, тут какая-то ерунда, всё время приходится в секунды конвертить!!!!!
-  // Может сразу в парсинге в секундах сохранять????????
-  auto x_val = static_cast<double>(dateTime.toSecsSinceEpoch());
+  const auto x_val = static_cast<double>(dateTime.toSecsSinceEpoch());
 
   return spline_interpolator_->interpolate(x_val);
 }
@@ -105,7 +103,7 @@ void AlgoTradingController::buildNewtonPolynomial(int degree) {
 }
 
 double AlgoTradingController::getInterpolatedValueNewton(
-    const QDateTime &dateTime, int degree) {
+    const QDateTime &dateTime, const int degree) {
   if (degree < 1 || degree >= static_cast<int>(tradeData_.size())) {
     qWarning() << "Invalid degree for Newton interpolation:" << degree;
     return std::numeric_limits<double>::quiet_NaN();

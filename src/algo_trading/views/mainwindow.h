@@ -2,8 +2,9 @@
 #define SRC_MAINWINDOW_H_
 
 #include <QMainWindow>
-#include <QMessageBox>
+// #include <QMessageBox>
 #include <QFileDialog>
+
 #include "../controllers/algo_trading_controller.h"
 
 QT_BEGIN_NAMESPACE
@@ -13,41 +14,37 @@ class MainWindow;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow {
-    Q_OBJECT
+  Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow() override;
+ public:
+  explicit MainWindow(QWidget* parent = nullptr);
+  ~MainWindow() override;
 
-private slots:
-    void on_LoadDataCsv_clicked();
-    void on_clean_button_clicked();
-    void on_PlotCubicSpline_clicked();
-    void on_PlotNewtonPolynomial_clicked();
+ private slots:
+  void on_LoadDataCsv_clicked();
+  void on_clean_button_clicked() const;
+  void on_PlotCubicSpline_clicked();
+  void on_PlotNewtonPolynomial_clicked();
 
-    void on_GetValue_clicked();
+  void on_GetValue_clicked() const;
 
+  void on_showPoints_clicked();
 
-    void on_showPoints_clicked();
+ private:
+  Ui::MainWindow* ui;
+  s21::AlgoTradingController* controller_;
 
-private:
-    Ui::MainWindow *ui;
-    s21::AlgoTradingController *controller_;
-
-
-    QString createGraphLabel(const QString& type, int degree, int pointCount);
-    void updateUiState();
-    void setupDateTimeEditLimits();
-    bool showPoints_ = false;
-    QVector<double> generateX(double xStart, double xEnd, int numPoints);
-    void plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y, const QString& label);
-    void plotInterpolatedFunction(
-        const QString& type,
-        int degree,
-        std::function<double(const QDateTime&)> valueFunc,
-        int pointCount
-        );
-
+  [[nodiscard]] QString createGraphLabel(const QString& type, int degree,
+                                         int pointCount) const;
+  void updateUiState() const;
+  void setupDateTimeEditLimits() const;
+  bool showPoints_ = false;
+  static QVector<double> generateX(double xStart, double xEnd, int numPoints);
+  void plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y,
+                             const QString& label);
+  void plotInterpolatedFunction(
+      const QString& type, int degree,
+      const std::function<double(const QDateTime&)>& valueFunc, int pointCount);
 };
 
-#endif // SRC_MAINWINDOW_H_
+#endif  // SRC_MAINWINDOW_H_

@@ -15,7 +15,8 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plotWidget->axisRect()->setupFullAxesBox();
 
   // Тикер времени
-  QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
+  const QSharedPointer<QCPAxisTickerDateTime> dateTicker(
+      new QCPAxisTickerDateTime);
   dateTicker->setDateTimeFormat("dd.MM.yyyy");
   dateTicker->setDateTimeSpec(Qt::UTC);
   ui->plotWidget->xAxis->setTicker(dateTicker);
@@ -32,8 +33,8 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plotWidget->setBackground(QColor(245, 245, 245));  // светло-серый фон
 
   // Сетка — мягкие линии
-  QPen majorGridPen(Qt::lightGray, 1, Qt::SolidLine);
-  QPen minorGridPen(Qt::gray, 0.8, Qt::DotLine);
+  const QPen majorGridPen(Qt::lightGray, 1, Qt::SolidLine);
+  const QPen minorGridPen(Qt::gray, 0.8, Qt::DotLine);
 
   ui->plotWidget->xAxis->grid()->setPen(majorGridPen);
   ui->plotWidget->yAxis->grid()->setPen(majorGridPen);
@@ -49,14 +50,17 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plotWidget->legend->setFont(QFont("Arial", 9));
 
   // Диапазон по умолчанию: 2020–2025
-  QDateTime start = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
-  QDateTime end = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
-  ui->plotWidget->xAxis->setRange(start.toSecsSinceEpoch(),
-                                  end.toSecsSinceEpoch());
-  ui->plotWidget->yAxis->setRange(0, 100);  // временной диапазон цены
+  const QDateTime start = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
+  const QDateTime end = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
+
+  const auto start_sec = static_cast<double>(start.toSecsSinceEpoch());
+  const auto end_sec = static_cast<double>(end.toSecsSinceEpoch());
+
+  ui->plotWidget->xAxis->setRange(start_sec, end_sec);
+  ui->plotWidget->yAxis->setRange(0, 100);
 
   // Ограничение масштабирования
-  ui->plotWidget->xAxis->setRangeLower(start.toSecsSinceEpoch());
+  ui->plotWidget->xAxis->setRangeLower(start_sec);
 
   // Настройка шрифтов
   QFont axisFont = font();
@@ -76,8 +80,8 @@ MainWindow::~MainWindow() {
   delete controller_;
 }
 
-void MainWindow::updateUiState() {
-  bool hasData = controller_->getDataCount() > 0;
+void MainWindow::updateUiState() const {
+  const bool hasData = controller_->getDataCount() > 0;
   ui->PlotCubicSpline->setEnabled(hasData);
   ui->PlotNewtonPolynomial->setEnabled(hasData);
   ui->GetValue->setEnabled(hasData);
@@ -92,7 +96,7 @@ void MainWindow::updateUiState() {
   ui->degreeLabel->setEnabled(hasData);
 }
 
-void MainWindow::on_clean_button_clicked() {
+void MainWindow::on_clean_button_clicked() const {
   ui->plotWidget->clearGraphs();
   ui->plotWidget->clearItems();
   ui->plotWidget->replot();
@@ -101,8 +105,8 @@ void MainWindow::on_clean_button_clicked() {
 void MainWindow::on_LoadDataCsv_clicked() {
   on_clean_button_clicked();
 
-  QString defaultDir = "../materials";
-  QString fileName = QFileDialog::getOpenFileName(
+  const QString defaultDir = "../materials";
+  const QString fileName = QFileDialog::getOpenFileName(
       this, tr("Открыть CSV файл с торговыми данными"), defaultDir,
       tr("CSV файлы (*.csv);;Все файлы (*)"));
 
@@ -111,12 +115,11 @@ void MainWindow::on_LoadDataCsv_clicked() {
   }
 
   if (controller_->loadTradingDataFromCsv(fileName)) {
-    int count = controller_->getDataCount();
-    if (count == 0) {
+    if (const size_t count = controller_->getDataCount(); count == 0) {
       QMessageBox::warning(this, tr("Ошибка"),
                            tr("Файл загружен, но данные не найдены"));
     } else {
-      QFileInfo fileInfo(fileName);
+      const QFileInfo fileInfo(fileName);
       QString shortFileName = fileInfo.fileName();
       QString baseTitle = windowTitle().section(" — ", 0, 0);
       setWindowTitle(
@@ -124,7 +127,7 @@ void MainWindow::on_LoadDataCsv_clicked() {
               .arg(baseTitle, shortFileName)
               .arg(count));
 
-      ui->numPoints->setMinimum(count);
+      ui->numPoints->setMinimum(static_cast<int>(count));
     }
   } else {
     QMessageBox::warning(this, tr("Ошибка"),
@@ -148,10 +151,10 @@ void MainWindow::on_PlotCubicSpline_clicked() {
 
 void MainWindow::on_PlotNewtonPolynomial_clicked() {
   int degree = ui->degreeSpinBox->value();
-  auto data = controller_->getTradeData();
+  const auto data = controller_->getTradeData();
 
   if (degree > 10) {
-    QString warningMsg =
+    const QString warningMsg =
         tr("Степень полинома %1 — это слишком много.\n\n"
            "Полиномы степени выше 10:\n"
            "• Сильно колеблются (явление Рунге)\n"
@@ -183,12 +186,12 @@ void MainWindow::on_PlotNewtonPolynomial_clicked() {
 }
 
 QString MainWindow::createGraphLabel(const QString& type, int degree,
-                                     int pointCount) {
+                                     int pointCount) const {
   // Извлекаем имя файла из заголовка: 'имя.csv'
   QString fileName = "unknown.csv";
   QString title = this->windowTitle();
-  int start = title.indexOf("'");
-  int end = title.indexOf("'", start + 1);
+  auto start = title.indexOf("'");
+  auto end = title.indexOf("'", start + 1);
   if (start != -1 && end != -1 && end > start) {
     fileName = title.mid(start + 1, end - start - 1);
   }
@@ -205,23 +208,23 @@ QString MainWindow::createGraphLabel(const QString& type, int degree,
 
   // Маркер ● и финальный вид
   QChar bullet(0x25CF);  // ●
-  return QString("%1 %2 — %3").arg(bullet).arg(prefix).arg(fileName);
+  return QString("%1 %2 — %3").arg(bullet, prefix, fileName);
 }
 
-void MainWindow::setupDateTimeEditLimits() {
-  auto data = controller_->getTradeData();
+void MainWindow::setupDateTimeEditLimits() const {
+  const auto data = controller_->getTradeData();
   if (data.empty()) return;
 
-  QDateTime minDate = QDateTime::fromSecsSinceEpoch(
+  const QDateTime minDate = QDateTime::fromSecsSinceEpoch(
       static_cast<qint64>(data.front().timestamp));
-  QDateTime maxDate =
+  const QDateTime maxDate =
       QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.back().timestamp));
 
   ui->dateTimeEdit->setDateTimeRange(minDate, maxDate);
   ui->dateTimeEdit->setDateTime(minDate);
 }
 
-void MainWindow::on_GetValue_clicked() {
+void MainWindow::on_GetValue_clicked() const {
   QDateTime dateTime = ui->dateTimeEdit->dateTime();
   int degree = ui->degreeSpinBox->value();
 
@@ -253,21 +256,22 @@ void MainWindow::on_showPoints_clicked() {
 }
 
 void MainWindow::plotInterpolatedFunction(
-    const QString& type, int degree,
-    std::function<double(const QDateTime&)> valueFunc, int pointCount) {
+    const QString& type, const int degree,
+    const std::function<double(const QDateTime&)>& valueFunc,
+    const int pointCount) {
   if (controller_->getDataCount() == 0) {
     QMessageBox::warning(this, "Ошибка", "Нет данных. Загрузите CSV.");
     return;
   }
 
-  auto data = controller_->getTradeData();
+  const auto data = controller_->getTradeData();
   if (data.size() < 2) {
     QMessageBox::warning(this, "Ошибка", "Минимум 2 точки.");
     return;
   }
 
-  double xStart = data.front().timestamp;
-  double xEnd = data.back().timestamp;
+  const double xStart = data.front().timestamp;
+  const double xEnd = data.back().timestamp;
 
   QVector<double> x = generateX(xStart, xEnd, pointCount);
   QVector<double> y;
@@ -278,7 +282,7 @@ void MainWindow::plotInterpolatedFunction(
     y.append(valueFunc(dt));
   }
 
-  QString label = createGraphLabel(type, degree, pointCount);
+  const QString label = createGraphLabel(type, degree, pointCount);
   plotInterpolatedGraph(x, y, label);
 }
 
