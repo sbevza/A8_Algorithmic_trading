@@ -6,6 +6,8 @@
 
 #include "models/file_reader.h"
 
+#include <QDateTime>
+
 namespace s21 {
 AlgoTradingController::AlgoTradingController(QObject *parent)
     : QObject(parent) {}

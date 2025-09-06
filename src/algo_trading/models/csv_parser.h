@@ -1,6 +1,9 @@
 #ifndef SRC_MODELS_CSV_PARSER_H_
 #define SRC_MODELS_CSV_PARSER_H_
 
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "trade_data.h"
 

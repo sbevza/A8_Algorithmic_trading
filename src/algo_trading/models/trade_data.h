@@ -2,7 +2,6 @@
 
 #ifndef SRC_MODELS_TRADE_DATA_H_
 #define SRC_MODELS_TRADE_DATA_H_
-#include <QDateTime>
 
 namespace s21 {
 

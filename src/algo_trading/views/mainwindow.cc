@@ -1,3 +1,5 @@
+// src/algo_trading/views/mainwindow.cc
+
 #include "mainwindow.h"
 
 #include "qcustomplot/qcustomplot.h"
