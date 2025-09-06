@@ -15,8 +15,8 @@ static bool almost_equal(double a, double b, double eps = 1e-9) {
 
 class NewtonInterpolatorTest : public ::testing::Test {
  protected:
-  std::vector<SplinePoint> points_small;   // x=[0,1,2,3], y=[1,3,7,13]
-  std::vector<SplinePoint> points_linear;  // y = 2x
+  std::vector<TradeData> points_small;   // x=[0,1,2,3], y=[1,3,7,13]
+  std::vector<TradeData> points_linear;  // y = 2x
 
   void SetUp() override {
     points_small = {{0.0, 1.0}, {1.0, 3.0}, {2.0, 7.0}, {3.0, 13.0}};
@@ -76,12 +76,12 @@ TEST_F(NewtonInterpolatorTest, DegreeTooHigh_Throws) {
 
 // Тест: пустой ввод — исключение
 TEST_F(NewtonInterpolatorTest, EmptyPoints_Throws) {
-  std::vector<SplinePoint> empty;
+  std::vector<TradeData> empty;
   EXPECT_THROW({ NewtonInterpolator interp(empty, 2); }, std::invalid_argument);
 }
 
 // Тест: одинаковые x — исключение
 TEST_F(NewtonInterpolatorTest, DuplicateX_Throws) {
-  std::vector<SplinePoint> bad = {{0, 0}, {0, 1}, {1, 2}};
+  std::vector<TradeData> bad = {{0, 0}, {0, 1}, {1, 2}};
   EXPECT_THROW({ NewtonInterpolator interp(bad, 2); }, std::invalid_argument);
 }

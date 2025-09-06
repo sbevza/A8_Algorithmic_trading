@@ -6,12 +6,7 @@
 #include <vector>
 
 #include "models/cubic_spline_interpolator.h"
-
-using namespace s21;
-
-struct SplinePoint {
-  double x, y;
-};
+#include "models/trade_data.h"
 
 bool almost_equal(double a, double b, double eps = 1e-9) {
   return std::abs(a - b) < eps;
@@ -19,9 +14,9 @@ bool almost_equal(double a, double b, double eps = 1e-9) {
 
 class CubicSplineTest : public ::testing::Test {
  protected:
-  std::vector<s21::SplinePoint> points_linear;
-  std::vector<s21::SplinePoint> points_quadratic;
-  std::vector<s21::SplinePoint> points_cubic;
+  std::vector<s21::TradeData> points_linear;
+  std::vector<s21::TradeData> points_quadratic;
+  std::vector<s21::TradeData> points_cubic;
 
   void SetUp() override {
     // Линейная: y = 2x
@@ -37,30 +32,31 @@ class CubicSplineTest : public ::testing::Test {
 
 // Тест: минимальное количество точек
 TEST_F(CubicSplineTest, Constructor_MinimumPoints) {
-  std::vector<s21::SplinePoint> two_points = {{0.0, 0.0}, {1.0, 1.0}};
-  EXPECT_NO_THROW({ CubicSplineInterpolator spline(two_points); });
+  std::vector<s21::TradeData> two_points = {{0.0, 0.0}, {1.0, 1.0}};
+  EXPECT_NO_THROW({ s21::CubicSplineInterpolator spline(two_points); });
 }
 
 // Тест: меньше двух точек — ошибка
 TEST_F(CubicSplineTest, Constructor_InsufficientPoints) {
-  std::vector<s21::SplinePoint> one_point = {{0.0, 0.0}};
+  std::vector<s21::TradeData> one_point = {{0.0, 0.0}};
   EXPECT_THROW(
-      { CubicSplineInterpolator spline(one_point); }, std::runtime_error);
+      { s21::CubicSplineInterpolator spline(one_point); }, std::runtime_error);
 }
 
 // Тест: x не строго возрастают — ошибка
 TEST_F(CubicSplineTest, Constructor_NonIncreasingX) {
-  std::vector<s21::SplinePoint> bad_x = {{0.0, 0.0}, {1.0, 1.0}, {1.0, 2.0}};
-  EXPECT_THROW({ CubicSplineInterpolator spline(bad_x); }, std::runtime_error);
-
-  std::vector<s21::SplinePoint> decreasing = {{2.0, 0.0}, {1.0, 1.0}};
+  std::vector<s21::TradeData> bad_x = {{0.0, 0.0}, {1.0, 1.0}, {1.0, 2.0}};
   EXPECT_THROW(
-      { CubicSplineInterpolator spline(decreasing); }, std::runtime_error);
+      { s21::CubicSplineInterpolator spline(bad_x); }, std::runtime_error);
+
+  std::vector<s21::TradeData> decreasing = {{2.0, 0.0}, {1.0, 1.0}};
+  EXPECT_THROW(
+      { s21::CubicSplineInterpolator spline(decreasing); }, std::runtime_error);
 }
 
 // Тест: линейная функция — сплайн должен быть линейным
 TEST_F(CubicSplineTest, Interpolate_LinearFunction) {
-  CubicSplineInterpolator spline(points_linear);
+  s21::CubicSplineInterpolator spline(points_linear);
 
   EXPECT_TRUE(almost_equal(spline.interpolate(0.0), 0.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(0.5), 1.0));
@@ -71,7 +67,7 @@ TEST_F(CubicSplineTest, Interpolate_LinearFunction) {
 
 // Тест: квадратичная функция y = x^2
 TEST_F(CubicSplineTest, Interpolate_QuadraticFunction) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_TRUE(almost_equal(spline.interpolate(0.0), 0.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(1.0), 1.0));
@@ -86,7 +82,7 @@ TEST_F(CubicSplineTest, Interpolate_QuadraticFunction) {
 
 // Тест: кубическая функция y = x^3
 TEST_F(CubicSplineTest, Interpolate_CubicFunction) {
-  CubicSplineInterpolator spline(points_cubic);
+  s21::CubicSplineInterpolator spline(points_cubic);
 
   EXPECT_TRUE(almost_equal(spline.interpolate(0.0), 0.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(1.0), 1.0));
@@ -101,7 +97,7 @@ TEST_F(CubicSplineTest, Interpolate_CubicFunction) {
 
 // Только в узлах
 TEST_F(CubicSplineTest, InterpolationAtNodes) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_NEAR(spline.interpolate(0.0), 0.0, 1e-10);
   EXPECT_NEAR(spline.interpolate(1.0), 1.0, 1e-10);
@@ -110,14 +106,14 @@ TEST_F(CubicSplineTest, InterpolationAtNodes) {
 }
 
 TEST_F(CubicSplineTest, DebugInterpolation) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
   std::cout << "interpolate(0.5) = " << spline.interpolate(0.5) << std::endl;
   std::cout << "interpolate(1.0) = " << spline.interpolate(1.0) << std::endl;
 }
 
 // Тест: выход за границы — исключение
 TEST_F(CubicSplineTest, Interpolate_OutOfRange) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_THROW(spline.interpolate(-0.1), std::runtime_error);
   EXPECT_THROW(spline.interpolate(3.1), std::runtime_error);
@@ -125,7 +121,7 @@ TEST_F(CubicSplineTest, Interpolate_OutOfRange) {
 
 // Тест: интерполяция на границе (в последней точке)
 TEST_F(CubicSplineTest, Interpolate_AtBoundaries) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_TRUE(almost_equal(spline.interpolate(0.0), 0.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(3.0), 9.0));
@@ -133,8 +129,8 @@ TEST_F(CubicSplineTest, Interpolate_AtBoundaries) {
 
 // Тест: две точки — линейная интерполяция
 TEST_F(CubicSplineTest, TwoPoints_Linear) {
-  std::vector<s21::SplinePoint> two = {{0.0, 0.0}, {2.0, 4.0}};
-  CubicSplineInterpolator spline(two);
+  std::vector<s21::TradeData> two = {{0.0, 0.0}, {2.0, 4.0}};
+  s21::CubicSplineInterpolator spline(two);
 
   EXPECT_TRUE(almost_equal(spline.interpolate(0.0), 0.0));
   EXPECT_TRUE(almost_equal(spline.interpolate(1.0), 2.0));
@@ -142,7 +138,7 @@ TEST_F(CubicSplineTest, TwoPoints_Linear) {
 }
 
 TEST_F(CubicSplineTest, Interpolate_InvalidInput) {
-  CubicSplineInterpolator spline(points_quadratic);
+  s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_THROW(spline.interpolate(NAN), std::runtime_error);
   EXPECT_THROW(spline.interpolate(INFINITY), std::runtime_error);

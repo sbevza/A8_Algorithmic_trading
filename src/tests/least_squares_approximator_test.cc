@@ -7,17 +7,15 @@
 #include <cmath>
 #include <vector>
 
-using namespace s21;
-
 static bool almost_equal(double a, double b, double eps = 1e-6) {
   return std::abs(a - b) < eps;
 }
 
 class LeastSquaresApproximatorTest : public ::testing::Test {
  protected:
-  std::vector<SplinePoint> points_linear;     // y = 2x + 1
-  std::vector<SplinePoint> points_quadratic;  // y = x^2
-  std::vector<SplinePoint> points_constant;   // y = 5
+  std::vector<s21::TradeData> points_linear;     // y = 2x + 1
+  std::vector<s21::TradeData> points_quadratic;  // y = x^2
+  std::vector<s21::TradeData> points_constant;   // y = 5
 
   void SetUp() override {
     points_linear = {
@@ -32,7 +30,7 @@ class LeastSquaresApproximatorTest : public ::testing::Test {
 
 // Тест: линейная аппроксимация (степень 1)
 TEST_F(LeastSquaresApproximatorTest, Fit_Linear) {
-  LeastSquaresApproximator approx(points_linear);
+  s21::LeastSquaresApproximator approx(points_linear);
   approx.fit(1);
 
   EXPECT_TRUE(almost_equal(approx.predict(0.0), 1.0, 0.2));
@@ -47,7 +45,7 @@ TEST_F(LeastSquaresApproximatorTest, Fit_Linear) {
 
 // Тест: квадратичная аппроксимация (степень 2) для y = x^2
 TEST_F(LeastSquaresApproximatorTest, Fit_Quadratic_Perfect) {
-  LeastSquaresApproximator approx(points_quadratic);
+  s21::LeastSquaresApproximator approx(points_quadratic);
   approx.fit(2);  // y = ax^2 + bx + c
 
   EXPECT_TRUE(almost_equal(approx.predict(-1.5), 2.25, 1e-5));
@@ -60,7 +58,7 @@ TEST_F(LeastSquaresApproximatorTest, Fit_Quadratic_Perfect) {
 
 // Тест: константная аппроксимация (степень 0)
 TEST_F(LeastSquaresApproximatorTest, Fit_Constant) {
-  LeastSquaresApproximator approx(points_constant);
+  s21::LeastSquaresApproximator approx(points_constant);
   approx.fit(0);  // y = c
 
   for (double x : {0.0, 1.0, 2.0, 3.0, 4.0}) {
@@ -70,11 +68,11 @@ TEST_F(LeastSquaresApproximatorTest, Fit_Constant) {
 
 // Тест: степень 0 на линейных данных → среднее
 TEST_F(LeastSquaresApproximatorTest, Fit_Degree0_Mean) {
-  LeastSquaresApproximator approx(points_linear);
+  s21::LeastSquaresApproximator approx(points_linear);
   approx.fit(0);
 
   double sum_y = 0.0;
-  for (const auto& p : points_linear) sum_y += p.y;
+  for (const auto& p : points_linear) sum_y += p.close;
   double mean = sum_y / points_linear.size();
 
   EXPECT_TRUE(almost_equal(approx.predict(0.0), mean, 1e-10));
@@ -82,29 +80,29 @@ TEST_F(LeastSquaresApproximatorTest, Fit_Degree0_Mean) {
 
 // Тест: степень больше, чем точек — исключение
 TEST_F(LeastSquaresApproximatorTest, DegreeTooHigh_Throws) {
-  LeastSquaresApproximator approx(points_linear);
+  s21::LeastSquaresApproximator approx(points_linear);
   EXPECT_THROW(approx.fit(10), std::invalid_argument);
 }
 
 // Тест: пустой ввод — исключение
 TEST_F(LeastSquaresApproximatorTest, EmptyPoints_Throws) {
-  std::vector<SplinePoint> empty;
+  std::vector<s21::TradeData> empty;
   EXPECT_THROW(
-      { LeastSquaresApproximator approx(empty); }, std::invalid_argument);
+      { s21::LeastSquaresApproximator approx(empty); }, std::invalid_argument);
 }
 
 // Тест: предсказание до fit — поведение не определено, но не должно крашиться
 TEST_F(LeastSquaresApproximatorTest, Predict_BeforeFit) {
-  LeastSquaresApproximator approx(points_linear);
+  s21::LeastSquaresApproximator approx(points_linear);
   EXPECT_TRUE(almost_equal(approx.predict(1.0), 0.0));
 }
 
 // Тест: аналитическое решение для линейной регрессии
 TEST_F(LeastSquaresApproximatorTest, Linear_Analytical_Check) {
-  std::vector<SplinePoint> perfect = {
+  std::vector<s21::TradeData> perfect = {
       {0.0, 1.0}, {1.0, 3.0}, {2.0, 5.0}, {3.0, 7.0}};
 
-  LeastSquaresApproximator approx(perfect);
+  s21::LeastSquaresApproximator approx(perfect);
   approx.fit(1);
 
   EXPECT_TRUE(almost_equal(approx.predict(0.0), 1.0, 1e-5));
