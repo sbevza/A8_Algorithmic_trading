@@ -27,7 +27,7 @@
     </size>
    </property>
    <property name="layoutDirection">
-    <enum>Qt::LayoutDirection::LeftToRight</enum>
+    <enum>Qt::LeftToRight</enum>
    </property>
    <property name="styleSheet">
     <string notr="true"/>
@@ -36,7 +36,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="inerpolation">
        <attribute name="title">
@@ -48,7 +48,7 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <item>
-             <widget class="QPushButton" name="LoadDataCsv">
+             <widget class="QPushButton" name="btn_load_data_csv">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -73,7 +73,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="clean_button">
+             <widget class="QPushButton" name="btn_clear_interpolation">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -98,7 +98,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="showPoints">
+             <widget class="QPushButton" name="btn_show_data_points">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -127,12 +127,9 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
-             <widget class="QLabel" name="interpolationLabel">
+             <widget class="QLabel" name="lbl_interpolation_title">
               <property name="text">
                <string>Интерполяция</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -142,7 +139,7 @@
                <widget class="QGroupBox" name="verticalGroupBox_spline">
                 <layout class="QVBoxLayout" name="verticalLayout_spline">
                  <item>
-                  <widget class="QPushButton" name="PlotCubicSpline">
+                  <widget class="QPushButton" name="btn_plot_cubic_spline">
                    <property name="minimumSize">
                     <size>
                      <width>200</width>
@@ -158,11 +155,8 @@
                   <layout class="QVBoxLayout" name="verticalLayout_4">
                    <item>
                     <spacer name="verticalSpacer">
-                     <property name="orientation">
-                      <enum>Qt::Orientation::Vertical</enum>
-                     </property>
                      <property name="sizeType">
-                      <enum>QSizePolicy::Policy::Minimum</enum>
+                      <enum>QSizePolicy::Fixed</enum>
                      </property>
                      <property name="sizeHint" stdset="0">
                       <size>
@@ -175,7 +169,7 @@
                   </layout>
                  </item>
                  <item>
-                  <widget class="QLabel" name="ValueSpline">
+                  <widget class="QLabel" name="lbl_spline_value">
                    <property name="text">
                     <string>Значение сплайна: </string>
                    </property>
@@ -188,7 +182,7 @@
                <widget class="QGroupBox" name="verticalGroupBox_Newton">
                 <layout class="QVBoxLayout" name="verticalLayout_polynom">
                  <item>
-                  <widget class="QPushButton" name="PlotNewtonPolynomial">
+                  <widget class="QPushButton" name="btn_plot_newton_polynomial">
                    <property name="minimumSize">
                     <size>
                      <width>200</width>
@@ -203,14 +197,14 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_5">
                    <item>
-                    <widget class="QLabel" name="degreeLabel">
+                    <widget class="QLabel" name="lbl_newton_degree_label">
                      <property name="text">
                       <string>Степень n</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="degreeSpinBox">
+                    <widget class="QSpinBox" name="spin_newton_degree">
                      <property name="minimum">
                       <number>1</number>
                      </property>
@@ -219,7 +213,7 @@
                   </layout>
                  </item>
                  <item>
-                  <widget class="QLabel" name="ValueNewton">
+                  <widget class="QLabel" name="lbl_newton_value">
                    <property name="text">
                     <string>Значение полинома:</string>
                    </property>
@@ -233,19 +227,19 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <item>
-               <widget class="QLabel" name="numPointsLabel">
+               <widget class="QLabel" name="lbl_interpolation_points_label">
                 <property name="text">
                  <string>Количество точек</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="numPoints">
+               <widget class="QSpinBox" name="spin_interpolation_points">
                 <property name="minimum">
                  <number>0</number>
                 </property>
                 <property name="stepType">
-                 <enum>QAbstractSpinBox::StepType::DefaultStepType</enum>
+                 <enum>QAbstractSpinBox::DefaultStepType</enum>
                 </property>
                </widget>
               </item>
@@ -254,14 +248,14 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_8">
               <item>
-               <widget class="QPushButton" name="GetValue">
+               <widget class="QPushButton" name="btn_get_interpolated_value">
                 <property name="text">
                  <string>Получить значение на дату:</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QDateTimeEdit" name="dateTimeEdit">
+               <widget class="QDateTimeEdit" name="dt_interpolation_input">
                 <property name="displayFormat">
                  <string>dd.MM.yyyy H:mm:ss</string>
                 </property>
@@ -276,7 +270,7 @@
         <item row="0" column="0">
          <layout class="QVBoxLayout" name="BaseLayout">
           <property name="sizeConstraint">
-           <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+           <enum>QLayout::SetDefaultConstraint</enum>
           </property>
           <property name="leftMargin">
            <number>2</number>
@@ -318,7 +312,7 @@
         <item row="0" column="0">
          <layout class="QVBoxLayout" name="BaseLayout_6">
           <property name="sizeConstraint">
-           <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+           <enum>QLayout::SetDefaultConstraint</enum>
           </property>
           <property name="leftMargin">
            <number>2</number>
@@ -438,9 +432,6 @@
               <property name="text">
                <string>Апроксимация с использованием метода наименьших квадратов</string>
               </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
              </widget>
             </item>
             <item>
@@ -521,7 +512,7 @@
                       <number>0</number>
                      </property>
                      <property name="stepType">
-                      <enum>QAbstractSpinBox::StepType::DefaultStepType</enum>
+                      <enum>QAbstractSpinBox::DefaultStepType</enum>
                      </property>
                     </widget>
                    </item>
@@ -577,7 +568,7 @@
         <item row="0" column="0">
          <layout class="QVBoxLayout" name="BaseLayout_8">
           <property name="sizeConstraint">
-           <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+           <enum>QLayout::SetDefaultConstraint</enum>
           </property>
           <property name="leftMargin">
            <number>2</number>

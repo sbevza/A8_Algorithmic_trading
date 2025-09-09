@@ -2,10 +2,10 @@
 #define SRC_MAINWINDOW_H_
 
 #include <QMainWindow>
-// #include <QMessageBox>
 #include <QFileDialog>
+#include <functional>
 
-#include "../controllers/algo_trading_controller.h"
+#include "controllers/algo_trading_controller.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -21,14 +21,19 @@ class MainWindow : public QMainWindow {
   ~MainWindow() override;
 
  private slots:
-  void on_LoadDataCsv_clicked();
-  void on_clean_button_clicked() const;
-  void on_PlotCubicSpline_clicked();
-  void on_PlotNewtonPolynomial_clicked();
-
-  void on_GetValue_clicked() const;
-
-  void on_showPoints_clicked();
+  // void on_LoadDataCsv_clicked();
+  // void on_clean_button_clicked() const;
+  // void on_PlotCubicSpline_clicked();
+  // void on_PlotNewtonPolynomial_clicked();
+  // void on_GetValue_clicked() const;
+  // void on_showPoints_clicked();
+  // === Интерполяция ===
+  void onLoadDataCsvClicked();           // Было: on_LoadDataCsv_clicked
+  void onClearInterpolationClicked();    // Было: on_clean_button_clicked
+  void onPlotCubicSplineClicked();       // Было: on_PlotCubicSpline_clicked
+  void onPlotNewtonPolynomialClicked();  // Было: on_PlotNewtonPolynomial_clicked
+  void onGetInterpolatedValueClicked();  // Было: on_GetValue_clicked
+  void onShowDataPointsToggled();        // Было: on_showPoints_clicked
 
  private:
   Ui::MainWindow* ui;

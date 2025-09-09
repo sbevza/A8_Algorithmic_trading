@@ -2,6 +2,14 @@
 
 #include "mainwindow.h"
 
+#include <QDateTime>
+#include <QFileDialog>
+#include <QFont>
+#include <QMessageBox>
+#include <QPen>
+#include <QSharedPointer>
+#include <functional>
+
 #include "qcustomplot/qcustomplot.h"
 #include "ui_mainwindow.h"
 
@@ -71,8 +79,26 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plotWidget->yAxis->setTickLabelFont(axisFont);
 
   // Количество точек
-  ui->numPoints->setMaximum(10000);
-  ui->numPoints->setValue(200);
+  ui->spin_interpolation_points->setMaximum(10000);
+  ui->spin_interpolation_points->setValue(200);
+
+  connect(ui->btn_load_data_csv, &QPushButton::clicked, this,
+          &MainWindow::onLoadDataCsvClicked);
+
+  connect(ui->btn_clear_interpolation, &QPushButton::clicked, this,
+          &MainWindow::onClearInterpolationClicked);
+
+  connect(ui->btn_plot_cubic_spline, &QPushButton::clicked, this,
+          &MainWindow::onPlotCubicSplineClicked);
+
+  connect(ui->btn_plot_newton_polynomial, &QPushButton::clicked, this,
+          &MainWindow::onPlotNewtonPolynomialClicked);
+
+  connect(ui->btn_get_interpolated_value, &QPushButton::clicked, this,
+          &MainWindow::onGetInterpolatedValueClicked);
+
+  connect(ui->btn_show_data_points, &QPushButton::clicked, this,
+          &MainWindow::onShowDataPointsToggled);
 
   updateUiState();
 }
@@ -84,28 +110,28 @@ MainWindow::~MainWindow() {
 
 void MainWindow::updateUiState() const {
   const bool hasData = controller_->getDataCount() > 0;
-  ui->PlotCubicSpline->setEnabled(hasData);
-  ui->PlotNewtonPolynomial->setEnabled(hasData);
-  ui->GetValue->setEnabled(hasData);
-  ui->showPoints->setEnabled(hasData);
-  ui->dateTimeEdit->setEnabled(hasData);
-  ui->numPointsLabel->setEnabled(hasData);
-  ui->degreeSpinBox->setEnabled(hasData);
-  ui->numPoints->setEnabled(hasData);
-  ui->ValueNewton->setEnabled(hasData);
-  ui->ValueSpline->setEnabled(hasData);
-  ui->clean_button->setEnabled(hasData);
-  ui->degreeLabel->setEnabled(hasData);
+  ui->btn_plot_cubic_spline->setEnabled(hasData);
+  ui->btn_plot_newton_polynomial->setEnabled(hasData);
+  ui->btn_get_interpolated_value->setEnabled(hasData);
+  ui->btn_show_data_points->setEnabled(hasData);
+  ui->dt_interpolation_input->setEnabled(hasData);
+  ui->lbl_interpolation_points_label->setEnabled(hasData);
+  ui->spin_newton_degree->setEnabled(hasData);
+  ui->spin_interpolation_points->setEnabled(hasData);
+  ui->lbl_newton_value->setEnabled(hasData);
+  ui->lbl_spline_value->setEnabled(hasData);
+  ui->btn_clear_interpolation->setEnabled(hasData);
+  ui->lbl_newton_degree_label->setEnabled(hasData);
 }
 
-void MainWindow::on_clean_button_clicked() const {
+void MainWindow::onClearInterpolationClicked() {  // NOLINT
   ui->plotWidget->clearGraphs();
   ui->plotWidget->clearItems();
   ui->plotWidget->replot();
 }
 
-void MainWindow::on_LoadDataCsv_clicked() {
-  on_clean_button_clicked();
+void MainWindow::onLoadDataCsvClicked() {
+  onClearInterpolationClicked();
 
   const QString defaultDir = "../materials";
   const QString fileName = QFileDialog::getOpenFileName(
@@ -129,7 +155,7 @@ void MainWindow::on_LoadDataCsv_clicked() {
               .arg(baseTitle, shortFileName)
               .arg(count));
 
-      ui->numPoints->setMinimum(static_cast<int>(count));
+      ui->spin_interpolation_points->setMinimum(static_cast<int>(count));
     }
   } else {
     QMessageBox::warning(this, tr("Ошибка"),
@@ -142,17 +168,17 @@ void MainWindow::on_LoadDataCsv_clicked() {
   setupDateTimeEditLimits();
 }
 
-void MainWindow::on_PlotCubicSpline_clicked() {
+void MainWindow::onPlotCubicSplineClicked() {
   plotInterpolatedFunction(
       "spline", 0,
       [this](const QDateTime& dt) {
         return controller_->getInterpolatedValue(dt);
       },
-      ui->numPoints->value());
+      ui->spin_interpolation_points->value());
 }
 
-void MainWindow::on_PlotNewtonPolynomial_clicked() {
-  int degree = ui->degreeSpinBox->value();
+void MainWindow::onPlotNewtonPolynomialClicked() {
+  int degree = ui->spin_newton_degree->value();
   const auto data = controller_->getTradeData();
 
   if (degree > 10) {
@@ -184,7 +210,7 @@ void MainWindow::on_PlotNewtonPolynomial_clicked() {
       [this, degree](const QDateTime& dt) {
         return controller_->getInterpolatedValueNewton(dt, degree);
       },
-      ui->numPoints->value());
+      ui->spin_interpolation_points->value());
 }
 
 QString MainWindow::createGraphLabel(const QString& type, int degree,
@@ -222,28 +248,29 @@ void MainWindow::setupDateTimeEditLimits() const {
   const QDateTime maxDate =
       QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.back().timestamp));
 
-  ui->dateTimeEdit->setDateTimeRange(minDate, maxDate);
-  ui->dateTimeEdit->setDateTime(minDate);
+  ui->dt_interpolation_input->setDateTimeRange(minDate, maxDate);
+  ui->dt_interpolation_input->setDateTime(minDate);
 }
 
-void MainWindow::on_GetValue_clicked() const {
-  QDateTime dateTime = ui->dateTimeEdit->dateTime();
-  int degree = ui->degreeSpinBox->value();
+void MainWindow::onGetInterpolatedValueClicked() {  // NOLINT
+  const QDateTime dateTime = ui->dt_interpolation_input->dateTime();
+  const int degree = ui->spin_newton_degree->value();
 
   // === Сплайн ===
-  double splineValue = controller_->getInterpolatedValue(dateTime);
-  QString splineText =
+  const double splineValue = controller_->getInterpolatedValue(dateTime);
+  const QString splineText =
       std::isnan(splineValue) ? "—" : QString::number(splineValue, 'f', 6);
-  ui->ValueSpline->setText("Значение сплайна: " + splineText);
+  ui->lbl_spline_value->setText("Значение сплайна: " + splineText);
 
   // === Полином Ньютона ===
-  double newValue = controller_->getInterpolatedValueNewton(dateTime, degree);
-  QString newtonText =
+  const double newValue =
+      controller_->getInterpolatedValueNewton(dateTime, degree);
+  const QString newtonText =
       std::isnan(newValue) ? "—" : QString::number(newValue, 'f', 6);
-  ui->ValueNewton->setText("Значение полинома: " + newtonText);
+  ui->lbl_newton_value->setText("Значение полинома: " + newtonText);
 }
 
-void MainWindow::on_showPoints_clicked() {
+void MainWindow::onShowDataPointsToggled() {
   showPoints_ = !showPoints_;
 
   for (int i = 0; i < ui->plotWidget->graphCount(); ++i) {
@@ -302,7 +329,7 @@ void MainWindow::plotInterpolatedGraph(const QVector<double>& x,
 
   static QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta,
                                    Qt::darkCyan};
-  int index = ui->plotWidget->graphCount();
+  const int index = ui->plotWidget->graphCount() - 1;
   QColor color = colors[index % colors.size()];
   graph->setPen(QPen(color, 2));
 
@@ -315,13 +342,17 @@ void MainWindow::plotInterpolatedGraph(const QVector<double>& x,
   ui->plotWidget->replot();
 }
 
-QVector<double> MainWindow::generateX(double xStart, double xEnd,
-                                      int numPoints) {
+QVector<double> MainWindow::generateX(const double xStart, const double xEnd,
+                                      const int numPoints) {
   QVector<double> x;
   x.reserve(numPoints);
-  double step = (xEnd - xStart) / (numPoints - 1);
-  for (int i = 0; i < numPoints; ++i) {
-    x.append(xStart + i * step);
+  if (numPoints == 1) {
+    x.append(xStart);
+  } else {
+    const double step = (xEnd - xStart) / (numPoints - 1);
+    for (int i = 0; i < numPoints; ++i) {
+      x.append(xStart + i * step);
+    }
   }
   return x;
 }
