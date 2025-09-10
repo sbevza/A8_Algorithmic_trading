@@ -30,10 +30,11 @@ class AlgoTradingController : public QObject {
   double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
 
  private:
-  std::vector<TradeData> tradeData_;
+  std::vector<TradeData> trade_data_;
   std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
   std::unique_ptr<s21::NewtonInterpolator> newton_interpolator_;
   CsvParser parser_;
+  int current_newton_degree_ = -1;
 };
 
 }  // namespace s21

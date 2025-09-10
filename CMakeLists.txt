@@ -30,8 +30,6 @@ add_executable(A8_Algorithmic_trading_1
         src/algo_trading/models/least_squares_approximator.h
         src/algo_trading/models/file_reader.cc
         src/algo_trading/models/file_reader.h
-        src/algo_trading/views/control_panel_widget.h
-        src/algo_trading/views/control_panel_widget.cc
 )
 
 target_link_libraries(A8_Algorithmic_trading_1
