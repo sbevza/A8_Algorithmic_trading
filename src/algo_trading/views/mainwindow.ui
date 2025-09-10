@@ -155,6 +155,9 @@
                   <layout class="QVBoxLayout" name="verticalLayout_4">
                    <item>
                     <spacer name="verticalSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
                      <property name="sizeType">
                       <enum>QSizePolicy::Fixed</enum>
                      </property>
@@ -327,7 +330,7 @@
            <number>2</number>
           </property>
           <item>
-           <widget class="QCustomPlot" name="plotWidget_6" native="true">
+           <widget class="QCustomPlot" name="plot_approximation" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -349,7 +352,7 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_33">
             <item>
-             <widget class="QPushButton" name="LoadDataCsv_11">
+             <widget class="QPushButton" name="btn_load_data_csv_approx">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -374,7 +377,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="clean_button_11">
+             <widget class="QPushButton" name="btn_clear_approximation">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -399,7 +402,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="showPoints_11">
+             <widget class="QPushButton" name="btn_show_approximation_points">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -428,7 +431,7 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_34">
             <item>
-             <widget class="QLabel" name="interpolationLabel_10">
+             <widget class="QLabel" name="lbl_approximation_title">
               <property name="text">
                <string>Апроксимация с использованием метода наименьших квадратов</string>
               </property>
@@ -442,7 +445,7 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_3">
                    <item>
-                    <widget class="QPushButton" name="PlotCubicSpline_10">
+                    <widget class="QPushButton" name="btn_plot_lsq_no_weights">
                      <property name="minimumSize">
                       <size>
                        <width>200</width>
@@ -455,7 +458,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QPushButton" name="pushButton">
+                    <widget class="QPushButton" name="btn_plot_lsq_with_weights">
                      <property name="minimumSize">
                       <size>
                        <width>200</width>
@@ -472,24 +475,24 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_2">
                    <item>
-                    <widget class="QLabel" name="label">
+                    <widget class="QLabel" name="lbl_extrapolate_days_label">
                      <property name="text">
                       <string>Количество дней:</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="spinBox"/>
+                    <widget class="QSpinBox" name="spin_extrapolate_days"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="degreeLabel_10">
+                    <widget class="QLabel" name="lbl_approx_degree_label">
                      <property name="text">
                       <string>Степень полинома:</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="degreeSpinBox_10">
+                    <widget class="QSpinBox" name="spin_approx_degree">
                      <property name="minimum">
                       <number>1</number>
                      </property>
@@ -500,14 +503,14 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_55">
                    <item>
-                    <widget class="QLabel" name="numPointsLabel_10">
+                    <widget class="QLabel" name="lbl_approx_points_label">
                      <property name="text">
                       <string>Количество точек</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="numPoints_10">
+                    <widget class="QSpinBox" name="spin_approx_points">
                      <property name="minimum">
                       <number>0</number>
                      </property>
@@ -526,21 +529,21 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_56">
               <item>
-               <widget class="QPushButton" name="GetValue_10">
+               <widget class="QPushButton" name="btn_get_approx_value">
                 <property name="text">
                  <string>Получить значение на дату:</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QDateTimeEdit" name="dateTimeEdit_10">
+               <widget class="QDateTimeEdit" name="dt_approx_input">
                 <property name="displayFormat">
                  <string>dd.MM.yyyy H:mm:ss</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="ValueSpline_10">
+               <widget class="QLabel" name="lbl_approx_value">
                 <property name="minimumSize">
                  <size>
                   <width>150</width>
@@ -583,7 +586,7 @@
            <number>2</number>
           </property>
           <item>
-           <widget class="QCustomPlot" name="plotWidget_8" native="true">
+           <widget class="QCustomPlot" name="plot_timing" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -605,7 +608,7 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_35">
             <item>
-             <widget class="QPushButton" name="LoadDataCsv_12">
+             <widget class="QPushButton" name="btn_load_data_csv_stats">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -630,7 +633,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="clean_button_12">
+             <widget class="QPushButton" name="btn_clear_stats">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -655,7 +658,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="showPoints_12">
+             <widget class="QPushButton" name="btn_show_stats_points">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -691,7 +694,7 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_60">
                    <item>
-                    <widget class="QPushButton" name="PlotCubicSpline_11">
+                    <widget class="QPushButton" name="btn_run_timing_study">
                      <property name="minimumSize">
                       <size>
                        <width>100</width>
@@ -706,14 +709,14 @@
                    <item>
                     <layout class="QHBoxLayout" name="horizontalLayout_59">
                      <item>
-                      <widget class="QLabel" name="degreeLabel_11">
+                      <widget class="QLabel" name="lbl_stats_partitions_label">
                        <property name="text">
                         <string>Число разбиений h:</string>
                        </property>
                       </widget>
                      </item>
                      <item>
-                      <widget class="QSpinBox" name="degreeSpinBox_11">
+                      <widget class="QSpinBox" name="spin_stats_partitions">
                        <property name="minimum">
                         <number>1</number>
                        </property>
@@ -724,14 +727,14 @@
                    <item>
                     <layout class="QHBoxLayout" name="horizontalLayout_58">
                      <item>
-                      <widget class="QLabel" name="label_2">
+                      <widget class="QLabel" name="lbl_stats_max_points_label">
                        <property name="text">
                         <string>Макс. число точек k:</string>
                        </property>
                       </widget>
                      </item>
                      <item>
-                      <widget class="QSpinBox" name="spinBox_2"/>
+                      <widget class="QSpinBox" name="spin_stats_max_points"/>
                      </item>
                     </layout>
                    </item>
@@ -740,7 +743,7 @@
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_42">
                    <item>
-                    <widget class="QTableWidget" name="tableWidget">
+                    <widget class="QTableWidget" name="table_timing_results">
                      <property name="minimumSize">
                       <size>
                        <width>0</width>

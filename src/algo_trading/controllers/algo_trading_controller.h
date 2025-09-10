@@ -28,6 +28,7 @@ class AlgoTradingController : public QObject {
 
   void buildNewtonPolynomial(int degree);
   double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
+
  private:
   std::vector<TradeData> tradeData_;
   std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
