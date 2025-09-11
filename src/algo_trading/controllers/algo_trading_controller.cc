@@ -121,4 +121,85 @@ double AlgoTradingController::getInterpolatedValueNewton(
   return newton_interpolator_->interpolate(x);
 }
 
+void AlgoTradingController::buildLeastSquaresModel(int degree,
+                                                   bool use_weights) {
+  if (trade_data_.empty()) {
+    qWarning() << "No data to build LSQ model.";
+    lsq_approximator_.reset();
+    return;
+  }
+
+  if (degree < 1 || degree >= static_cast<int>(trade_data_.size())) {
+    qWarning() << "Invalid degree for LSQ:" << degree;
+    lsq_approximator_.reset();
+    return;
+  }
+
+  if (lsq_approximator_ && current_lsq_degree_ == degree &&
+      current_lsq_use_weights_ == use_weights) {
+    return;
+  }
+
+  try {
+    lsq_approximator_ =
+        std::make_unique<s21::LeastSquaresApproximator>(trade_data_);
+    lsq_approximator_->fit(degree);
+
+    current_lsq_degree_ = degree;
+    current_lsq_use_weights_ = use_weights;
+    qDebug() << "LSQ model built (degree" << degree
+             << ", weights:" << (use_weights ? "yes" : "no") << ")";
+  } catch (const std::exception &e) {
+    qCritical() << "Failed to build LSQ model:" << e.what();
+    lsq_approximator_.reset();
+  }
+}
+
+double AlgoTradingController::getApproximatedValue(const QDateTime& dateTime,
+                                                   int degree,
+                                                   bool use_weights) {
+  if (!lsq_approximator_ || current_lsq_degree_ != degree ||
+      current_lsq_use_weights_ != use_weights) {
+    buildLeastSquaresModel(degree, use_weights);
+      }
+
+  if (!lsq_approximator_) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+
+  const auto x = static_cast<double>(dateTime.toSecsSinceEpoch());
+  return lsq_approximator_->predict(x);
+}
+
+std::vector<std::pair<double, double>>
+AlgoTradingController::generateApproximationCurve(
+    int degree, bool use_weights, int numPoints, int extrapolateDays) const {
+  if (!lsq_approximator_ || trade_data_.empty()) {
+    return {};
+  }
+
+  const double x_start = trade_data_.front().timestamp;
+  const double x_end = trade_data_.back().timestamp;
+  const double extrapolate_sec = daysToSeconds(extrapolateDays);
+
+  const double plot_start = x_start;
+  const double plot_end = x_end + extrapolate_sec;
+
+  std::vector<std::pair<double, double>> curve;
+  curve.reserve(numPoints);
+
+  const double step = (plot_end - plot_start) / (numPoints - 1);
+  for (int i = 0; i < numPoints; ++i) {
+    const double x = plot_start + i * step;
+    const double y = lsq_approximator_->predict(x);
+    curve.emplace_back(x, y);
+  }
+
+  return curve;
+}
+
+double AlgoTradingController::daysToSeconds(int days) {
+  return static_cast<double>(days * 24 * 60 * 60);
+}
+
 }  // namespace s21

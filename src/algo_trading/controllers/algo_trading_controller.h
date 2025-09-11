@@ -9,6 +9,7 @@
 #include "models/csv_parser.h"
 #include "models/cubic_spline_interpolator.h"
 #include "models/newton_interpolator.h"
+#include "models/least_squares_approximator.h"
 
 namespace s21 {
 
@@ -29,12 +30,24 @@ class AlgoTradingController : public QObject {
   void buildNewtonPolynomial(int degree);
   double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
 
+  void buildLeastSquaresModel(int degree, bool use_weights);
+  [[nodiscard]] double getApproximatedValue(const QDateTime& dateTime, int degree, bool use_weights);
+  [[nodiscard]] std::vector<std::pair<double, double>> generateApproximationCurve(
+      int degree, bool use_weights, int numPoints, int extrapolateDays) const;
+
  private:
   std::vector<TradeData> trade_data_;
   std::unique_ptr<s21::CubicSplineInterpolator> spline_interpolator_;
   std::unique_ptr<s21::NewtonInterpolator> newton_interpolator_;
   CsvParser parser_;
   int current_newton_degree_ = -1;
+
+  std::unique_ptr<s21::LeastSquaresApproximator> lsq_approximator_;
+  int current_lsq_degree_ = -1;
+  bool current_lsq_use_weights_ = false;
+  int current_extrapolate_days_ = 0;  // для отслеживания M
+
+  static double daysToSeconds(int days);
 };
 
 }  // namespace s21

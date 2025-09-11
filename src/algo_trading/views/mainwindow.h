@@ -21,12 +21,6 @@ class MainWindow : public QMainWindow {
   ~MainWindow() override;
 
  private slots:
-  // void on_LoadDataCsv_clicked();
-  // void on_clean_button_clicked() const;
-  // void on_PlotCubicSpline_clicked();
-  // void on_PlotNewtonPolynomial_clicked();
-  // void on_GetValue_clicked() const;
-  // void on_showPoints_clicked();
   // === Интерполяция ===
   void onLoadDataCsvClicked();           // Было: on_LoadDataCsv_clicked
   void onClearInterpolationClicked();    // Было: on_clean_button_clicked
@@ -35,21 +29,31 @@ class MainWindow : public QMainWindow {
   void onGetInterpolatedValueClicked();  // Было: on_GetValue_clicked
   void onShowDataPointsToggled();        // Было: on_showPoints_clicked
 
+  // === Аппроксимация ===
+  void onPlotLsqNoWeightsClicked();
+  void onPlotLsqWithWeightsClicked();
+  void onGetApproxValueClicked();
+  void onClearApproximationClicked();
+  void onShowApproxPointsToggled();
+
  private:
   Ui::MainWindow* ui;
   s21::AlgoTradingController* controller_;
-
+  [[nodiscard]] QString getFileNameFromTitle() const;
   [[nodiscard]] QString createGraphLabel(const QString& type, int degree,
                                          int pointCount) const;
   void updateUiState() const;
   void setupDateTimeEditLimits() const;
   bool showPoints_ = false;
+  bool showApproxPoints_ = false;
+  int last_extrapolate_days_ = 0;
   static QVector<double> generateX(double xStart, double xEnd, int numPoints);
   void plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y,
                              const QString& label);
   void plotInterpolatedFunction(
       const QString& type, int degree,
       const std::function<double(const QDateTime&)>& valueFunc, int pointCount);
+  void plotApproximation(bool use_weights);
 };
 
 #endif  // SRC_MAINWINDOW_H_

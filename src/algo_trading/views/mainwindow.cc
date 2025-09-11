@@ -82,6 +82,66 @@ MainWindow::MainWindow(QWidget* parent)
   ui->spin_interpolation_points->setMaximum(10000);
   ui->spin_interpolation_points->setValue(200);
 
+  // =====================================================================
+  // === Настройка QCustomPlot для аппроксимации ===
+  ui->plot_approximation->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom |
+                                          QCP::iSelectPlottables);
+  ui->plot_approximation->axisRect()->setupFullAxesBox();
+
+  // Тикер времени
+  const QSharedPointer<QCPAxisTickerDateTime> dateTickerApprox(
+      new QCPAxisTickerDateTime);
+  dateTickerApprox->setDateTimeFormat("dd.MM.yyyy");
+  dateTickerApprox->setDateTimeSpec(Qt::UTC);
+  ui->plot_approximation->xAxis->setTicker(dateTickerApprox);
+
+  // Оси
+  ui->plot_approximation->xAxis->setLabel("Дата");
+  ui->plot_approximation->yAxis->setLabel("Цена");
+  ui->plot_approximation->xAxis->setLabelColor(Qt::darkBlue);
+  ui->plot_approximation->yAxis->setLabelColor(Qt::darkBlue);
+  ui->plot_approximation->xAxis->setTickLabelColor(Qt::darkGray);
+  ui->plot_approximation->yAxis->setTickLabelColor(Qt::darkGray);
+
+  // Фон
+  ui->plot_approximation->setBackground(QColor(245, 245, 245));
+
+  // Сетка — мягкие линии
+  const QPen majorGridPenApprox(Qt::lightGray, 1, Qt::SolidLine);
+  const QPen minorGridPenApprox(Qt::gray, 0.8, Qt::DotLine);
+
+  ui->plot_approximation->xAxis->grid()->setPen(majorGridPenApprox);
+  ui->plot_approximation->yAxis->grid()->setPen(majorGridPenApprox);
+  ui->plot_approximation->xAxis->grid()->setSubGridPen(minorGridPenApprox);
+  ui->plot_approximation->yAxis->grid()->setSubGridPen(minorGridPenApprox);
+  ui->plot_approximation->xAxis->grid()->setSubGridVisible(true);
+  ui->plot_approximation->yAxis->grid()->setSubGridVisible(true);
+
+  // Легенда
+  ui->plot_approximation->legend->setVisible(true);
+  ui->plot_approximation->legend->setBrush(QColor(255, 255, 255, 220));
+  ui->plot_approximation->legend->setBorderPen(QPen(Qt::lightGray, 1));
+  ui->plot_approximation->legend->setFont(QFont("Arial", 9));
+
+  // Диапазон по умолчанию: 2020–2025
+  const QDateTime startApprox = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
+  const QDateTime endApprox = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
+  const auto start_secApprox = static_cast<double>(startApprox.toSecsSinceEpoch());
+  const auto end_secApprox = static_cast<double>(endApprox.toSecsSinceEpoch());
+
+  ui->plot_approximation->xAxis->setRange(start_secApprox, end_secApprox);
+  ui->plot_approximation->yAxis->setRange(0, 100);
+
+  // Ограничение масштабирования
+  ui->plot_approximation->xAxis->setRangeLower(start_secApprox);
+
+  // Настройка шрифтов
+  QFont axisFontApprox = font();
+  axisFontApprox.setPointSize(9);
+  ui->plot_approximation->xAxis->setTickLabelFont(axisFontApprox);
+  ui->plot_approximation->yAxis->setTickLabelFont(axisFontApprox);
+  // =====================================================================
+
   connect(ui->btn_load_data_csv, &QPushButton::clicked, this,
           &MainWindow::onLoadDataCsvClicked);
 
@@ -99,6 +159,25 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(ui->btn_show_data_points, &QPushButton::clicked, this,
           &MainWindow::onShowDataPointsToggled);
+
+  // === Подключение сигналов для вкладки "Аппроксимация" ===
+  connect(ui->btn_load_data_csv_approx, &QPushButton::clicked, this,
+          &MainWindow::onLoadDataCsvClicked);
+
+  connect(ui->btn_plot_lsq_no_weights, &QPushButton::clicked, this,
+          &MainWindow::onPlotLsqNoWeightsClicked);
+
+  connect(ui->btn_plot_lsq_with_weights, &QPushButton::clicked, this,
+          &MainWindow::onPlotLsqWithWeightsClicked);
+
+  connect(ui->btn_get_approx_value, &QPushButton::clicked, this,
+          &MainWindow::onGetApproxValueClicked);
+
+  connect(ui->btn_clear_approximation, &QPushButton::clicked, this,
+          &MainWindow::onClearApproximationClicked);
+
+  connect(ui->btn_show_approximation_points, &QPushButton::clicked, this,
+          &MainWindow::onShowApproxPointsToggled);
 
   updateUiState();
 }
@@ -132,6 +211,7 @@ void MainWindow::onClearInterpolationClicked() {  // NOLINT
 
 void MainWindow::onLoadDataCsvClicked() {
   onClearInterpolationClicked();
+  onClearApproximationClicked();
 
   const QString defaultDir = "../materials";
   const QString fileName = QFileDialog::getOpenFileName(
@@ -156,6 +236,7 @@ void MainWindow::onLoadDataCsvClicked() {
               .arg(count));
 
       ui->spin_interpolation_points->setMinimum(static_cast<int>(count));
+      ui->spin_approx_points->setMinimum(static_cast<int>(count));
     }
   } else {
     QMessageBox::warning(this, tr("Ошибка"),
@@ -355,4 +436,161 @@ QVector<double> MainWindow::generateX(const double xStart, const double xEnd,
     }
   }
   return x;
+}
+
+void MainWindow::onPlotLsqNoWeightsClicked() {
+  plotApproximation(false);  // без весов
+}
+
+void MainWindow::onPlotLsqWithWeightsClicked() {
+  plotApproximation(true);  // с весами
+}
+
+void MainWindow::plotApproximation(bool use_weights) {
+  const int degree = ui->spin_approx_degree->value();
+  const int days = ui->spin_extrapolate_days->value();
+  const int numPoints = ui->spin_approx_points->value();
+
+  // По заданию: если M изменилось — очистить график
+  if (days != last_extrapolate_days_) {
+    ui->plot_approximation->clearGraphs();
+    ui->plot_approximation->clearItems();
+    last_extrapolate_days_ = days;
+  }
+
+  if (ui->plot_approximation->graphCount() >= 5) {
+    QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
+    return;
+  }
+
+  controller_->buildLeastSquaresModel(degree, use_weights);
+
+  const auto curve = controller_->generateApproximationCurve(
+      degree, use_weights, numPoints, days);
+
+  if (curve.empty()) {
+    QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
+    return;
+  }
+
+  QVector<double> x, y;
+  for (const auto& [xi, yi] : curve) {
+    x.append(xi);
+    y.append(yi);
+  }
+
+  QString method = use_weights ? "LSQ (с весами)" : "LSQ (без весов)";
+  QString label = QString("● %1, степень=%2, M=%3 — %4")
+                      .arg(method)
+                      .arg(degree)
+                      .arg(days)
+                      .arg(getFileNameFromTitle());
+
+  QCPGraph* graph = ui->plot_approximation->addGraph();
+  graph->setData(x, y);
+  graph->setName(label);
+
+  static QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta,
+                                   Qt::darkCyan};
+  QColor color = colors[ui->plot_approximation->graphCount() - 1];
+  graph->setPen(QPen(color, 2));
+
+  // Исходные точки — жирнее, другим цветом
+  if (showApproxPoints_) {
+    QCPGraph* points = ui->plot_approximation->addGraph();
+    QVector<double> px, py;
+    const auto& data = controller_->getTradeData();
+    for (const auto& td : data) {
+      px.append(td.timestamp);
+      py.append(td.close);
+    }
+    points->setData(px, py);
+    points->setScatterStyle(
+        QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
+    points->setPen(QPen(Qt::yellow, 1.5));
+    points->setName("Исходные точки");
+  }
+
+  ui->plot_approximation->rescaleAxes();
+  ui->plot_approximation->replot();
+}
+
+void MainWindow::onGetApproxValueClicked() {
+  QDateTime dt = ui->dt_approx_input->dateTime();
+  int degree = ui->spin_approx_degree->value();
+
+  // Без весов
+  double value_no_weight = controller_->getApproximatedValue(dt, degree, false);
+  QString val_str_no = std::isnan(value_no_weight)
+                           ? "—"
+                           : QString::number(value_no_weight, 'f', 6);
+
+  // С весами
+  double value_with_weight =
+      controller_->getApproximatedValue(dt, degree, true);
+  QString val_str_w = std::isnan(value_with_weight)
+                          ? "—"
+                          : QString::number(value_with_weight, 'f', 6);
+
+  ui->lbl_approx_value->setText(
+      QString("Без весов: %1; С весами: %2").arg(val_str_no, val_str_w));
+}
+
+QString MainWindow::getFileNameFromTitle() const {
+  QString fileName = "unknown.csv";
+  const QString title = this->windowTitle();
+
+  const auto start = title.indexOf('\'');
+  const auto end = title.indexOf('\'', start + 1);
+
+  if (start != -1 && end != -1 && end > start) {
+    fileName = title.mid(start + 1, end - start - 1);
+  }
+
+  return fileName;
+}
+
+void MainWindow::onClearApproximationClicked() {
+  ui->plot_approximation->clearGraphs();
+  ui->plot_approximation->clearItems();
+  ui->plot_approximation->replot();
+}
+
+void MainWindow::onShowApproxPointsToggled() {
+  showApproxPoints_ = !showApproxPoints_;
+
+  // Удаляем существующие точки (если есть)
+  for (int i = 0; i < ui->plot_approximation->graphCount(); ++i) {
+    QCPGraph* g = ui->plot_approximation->graph(i);
+    if (g->name() == "Исходные точки") {
+      ui->plot_approximation->removeGraph(g);
+      break;
+    }
+  }
+
+  // Если включено — добавляем точки
+  if (showApproxPoints_) {
+    const auto& data = controller_->getTradeData();
+    if (!data.empty()) {
+      QCPGraph* points = ui->plot_approximation->addGraph();
+
+      QVector<double> px, py;
+      for (const auto& td : data) {
+        px.append(td.timestamp);
+        py.append(td.close);
+      }
+
+      points->setData(px, py);
+      points->setName("Исходные точки");
+      points->setPen(QPen(Qt::yellow, 1.5));
+      points->setScatterStyle(QCPScatterStyle(
+          QCPScatterStyle::ssCircle,  // форма
+          Qt::black,                  // обводка
+          Qt::yellow,                 // заливка
+          8                           // радиус
+          ));
+    }
+  }
+
+  ui->plot_approximation->replot();
 }
