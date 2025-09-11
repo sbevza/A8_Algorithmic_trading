@@ -362,7 +362,7 @@
               <property name="minimumSize">
                <size>
                 <width>100</width>
-                <height>100</height>
+                <height>50</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -398,6 +398,21 @@
               </property>
               <property name="text">
                <string> Очистить график</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_plot_four_graphs">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>80</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Построить 4 графика
+(степени 1 и 2,
+с/без весов)</string>
               </property>
              </widget>
             </item>

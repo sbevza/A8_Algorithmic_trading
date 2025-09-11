@@ -124,9 +124,11 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plot_approximation->legend->setFont(QFont("Arial", 9));
 
   // Диапазон по умолчанию: 2020–2025
-  const QDateTime startApprox = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
+  const QDateTime startApprox =
+      QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
   const QDateTime endApprox = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
-  const auto start_secApprox = static_cast<double>(startApprox.toSecsSinceEpoch());
+  const auto start_secApprox =
+      static_cast<double>(startApprox.toSecsSinceEpoch());
   const auto end_secApprox = static_cast<double>(endApprox.toSecsSinceEpoch());
 
   ui->plot_approximation->xAxis->setRange(start_secApprox, end_secApprox);
@@ -178,6 +180,9 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(ui->btn_show_approximation_points, &QPushButton::clicked, this,
           &MainWindow::onShowApproxPointsToggled);
+
+  connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this,
+          &MainWindow::onPlotFourGraphsClicked);
 
   updateUiState();
 }
@@ -592,5 +597,71 @@ void MainWindow::onShowApproxPointsToggled() {
     }
   }
 
+  ui->plot_approximation->replot();
+}
+
+void MainWindow::onPlotFourGraphsClicked() {
+  const int numPoints = ui->spin_approx_points->value();
+  const int days = ui->spin_extrapolate_days->value();
+
+  ui->plot_approximation->clearGraphs();
+  ui->plot_approximation->clearItems();
+  last_extrapolate_days_ = days;
+
+  struct PlotConfig {
+    int degree;
+    bool use_weights;
+    QString label_suffix;
+    QColor color;
+  };
+
+  static QVector<PlotConfig> configs = {
+      {1, false, "степень 1, без весов", Qt::blue},
+      {2, false, "степень 2, без весов", Qt::red},
+      {1, true, "степень 1, с весами", Qt::green},
+      {2, true, "степень 2, с весами", Qt::magenta}};
+
+  for (const auto& config : configs) {
+    controller_->buildLeastSquaresModel(config.degree, config.use_weights);
+
+    const auto curve = controller_->generateApproximationCurve(
+        config.degree, config.use_weights, numPoints, days);
+
+    if (curve.empty()) continue;
+
+    QVector<double> x, y;
+    for (const auto& [xi, yi] : curve) {
+      x.append(xi);
+      y.append(yi);
+    }
+
+    QCPGraph* graph = ui->plot_approximation->addGraph();
+    graph->setData(x, y);
+
+    QString label = QString("● %1 — %2")
+                        .arg(config.label_suffix)
+                        .arg(getFileNameFromTitle());
+
+    graph->setName(label);
+    graph->setPen(QPen(config.color, 2));
+    graph->setScatterStyle(QCPScatterStyle::ssNone);
+  }
+
+  if (showApproxPoints_) {
+    QCPGraph* points = ui->plot_approximation->addGraph();
+    QVector<double> px, py;
+    const auto& data = controller_->getTradeData();
+    for (const auto& td : data) {
+      px.append(td.timestamp);
+      py.append(td.close);
+    }
+    points->setData(px, py);
+    points->setScatterStyle(
+        QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
+    points->setPen(QPen(Qt::yellow, 1.5));
+    points->setName("Исходные точки");
+  }
+
+  ui->plot_approximation->rescaleAxes();
   ui->plot_approximation->replot();
 }

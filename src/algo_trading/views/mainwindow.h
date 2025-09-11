@@ -35,6 +35,7 @@ class MainWindow : public QMainWindow {
   void onGetApproxValueClicked();
   void onClearApproximationClicked();
   void onShowApproxPointsToggled();
+  void onPlotFourGraphsClicked();
 
  private:
   Ui::MainWindow* ui;
