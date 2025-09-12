@@ -143,7 +143,19 @@ void AlgoTradingController::buildLeastSquaresModel(int degree,
   try {
     lsq_approximator_ =
         std::make_unique<s21::LeastSquaresApproximator>(trade_data_);
-    lsq_approximator_->fit(degree);
+
+    std::vector<double> weights;
+    weights.reserve(trade_data_.size());
+
+    if (use_weights) {
+      for (const auto& td : trade_data_) {
+        weights.push_back(td.weight);
+      }
+    } else {
+      weights.resize(trade_data_.size(), 1.0);  // все веса = 1
+    }
+
+    lsq_approximator_->fit(degree, weights);
 
     current_lsq_degree_ = degree;
     current_lsq_use_weights_ = use_weights;

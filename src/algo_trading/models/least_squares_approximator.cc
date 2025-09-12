@@ -21,17 +21,23 @@ LeastSquaresApproximator::LeastSquaresApproximator(
     return a.timestamp < b.timestamp;
   });
 
+  x_vals_.clear();
+  y_vals_.clear();
   for (const auto& td : sorted) {
     x_vals_.push_back(td.timestamp);
     y_vals_.push_back(td.close);
-    weights_.push_back(td.weight);
   }
   coefficients_ = {0.0};
 }
 
-void LeastSquaresApproximator::fit(const int degree) {
+void LeastSquaresApproximator::fit(const int degree,
+                                   const std::vector<double>& weights) {
   if (degree < 0) {
     throw std::runtime_error("Degree must be non-negative.");
+  }
+  if (static_cast<int>(weights.size()) != static_cast<int>(x_vals_.size())) {
+    throw std::invalid_argument(
+        "Weights size does not match number of points.");
   }
   if (degree >= static_cast<int>(x_vals_.size())) {
     throw std::invalid_argument("Degree too high for number of points.");
@@ -48,20 +54,19 @@ void LeastSquaresApproximator::fit(const int degree) {
     for (int j = 0; j < m; ++j) {
       double sum = 0.0;
       for (int k = 0; k < n; ++k) {
-        sum += weights_[k] * std::pow(x_vals_[k], i + j);
+        sum += weights[k] * std::pow(x_vals_[k], i + j);
       }
       A[i][j] = sum;
     }
     double sum = 0.0;
     for (int k = 0; k < n; ++k) {
-      sum += weights_[k] * y_vals_[k] * std::pow(x_vals_[k], i);
+      sum += weights[k] * y_vals_[k] * std::pow(x_vals_[k], i);
     }
     B[i] = sum;
   }
+  coefficients_.resize(m, 0.0);
 
-  coefficients_.resize(m);
-  for (int i = 0; i < m; ++i) coefficients_[i] = 0.0;
-
+  // Прямой ход Гаусса с выбором главного элемента
   for (int i = 0; i < m; ++i) {
     int max_row = i;
     for (int k = i + 1; k < m; ++k) {
@@ -81,6 +86,7 @@ void LeastSquaresApproximator::fit(const int degree) {
     }
   }
 
+  // Обратный ход
   for (int i = m - 1; i >= 0; --i) {
     coefficients_[i] = B[i];
     for (int j = i + 1; j < m; ++j) {
