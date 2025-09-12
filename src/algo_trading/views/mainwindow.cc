@@ -184,6 +184,13 @@ MainWindow::MainWindow(QWidget* parent)
   connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this,
           &MainWindow::onPlotFourGraphsClicked);
 
+  // === Подключение сигналов для вкладки "Исследования" ===
+  connect(ui->btn_run_timing_study, &QPushButton::clicked, this,
+          &MainWindow::onRunTimingStudyClicked);
+
+  connect(ui->btn_load_data_csv_stats, &QPushButton::clicked, this,
+          &MainWindow::onLoadDataCsvClicked);
+
   updateUiState();
 }
 
@@ -664,4 +671,118 @@ void MainWindow::onPlotFourGraphsClicked() {
 
   ui->plot_approximation->rescaleAxes();
   ui->plot_approximation->replot();
+}
+
+void MainWindow::onRunTimingStudyClicked() {
+  const int h = ui->spin_stats_partitions->value();      // число разбиений
+  const int k_max = ui->spin_stats_max_points->value();  // макс. точек
+  const int newton_degree = 5;  // фиксированная степень для теста
+
+  const auto data = controller_->getTradeData();
+  if (data.size() < 2) {
+    QMessageBox::warning(this, "Ошибка", "Нужно хотя бы 2 точки.");
+    return;
+  }
+
+  const int N = static_cast<int>(data.size());
+  if (k_max < N) {
+    QMessageBox::warning(this, "Ошибка", "Макс. число точек >= числа в файле");
+    return;
+  }
+  if (h < 2) {
+    QMessageBox::warning(this, "Ошибка", "Число разбиений h >= 2");
+    return;
+  }
+
+  const double xStart = data.front().timestamp;
+  const double xEnd = data.back().timestamp;
+
+  // Очистка предыдущих результатов
+  ui->plot_timing->clearGraphs();
+  ui->plot_timing->clearItems();
+  ui->table_timing_results->setRowCount(0);
+
+  // Настройка таблицы
+  ui->table_timing_results->setColumnCount(3);
+  ui->table_timing_results->setHorizontalHeaderLabels(
+      {"k", "Spline (мс)", "Newton (мс)"});
+
+  std::vector<int> k_values(h);
+  std::vector<double> times_spline(h), times_newton(h);
+
+  const int measurements = 10;
+
+  for (int i = 0; i < h; ++i) {
+    const int k_i = N + (k_max - N) * i / (h - 1);
+    k_values[i] = k_i;
+
+    // Генерируем точки один раз
+    QVector<double> x = generateX(xStart, xEnd, k_i);
+    std::vector<QDateTime> dt_vec;
+    dt_vec.reserve(k_i);
+    for (double xi : x) {
+      dt_vec.emplace_back(
+          QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi)));
+    }
+
+    // === Измерение времени для сплайна ===
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int m = 0; m < measurements; ++m) {
+      for (const QDateTime& dt : dt_vec) {
+        controller_->getInterpolatedValue(dt);  // вызов
+      }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration_ms =
+        std::chrono::duration<double, std::milli>(end - start).count();
+    times_spline[i] = duration_ms / measurements;
+
+    // === Измерение времени для Ньютона ===
+    start = std::chrono::high_resolution_clock::now();
+    for (int m = 0; m < measurements; ++m) {
+      for (const QDateTime& dt : dt_vec) {
+        controller_->getInterpolatedValueNewton(dt, newton_degree);
+      }
+    }
+    end = std::chrono::high_resolution_clock::now();
+    duration_ms =
+        std::chrono::duration<double, std::milli>(end - start).count();
+    times_newton[i] = duration_ms / measurements;
+
+    // Обновление таблицы
+    int row = ui->table_timing_results->rowCount();
+    ui->table_timing_results->insertRow(row);
+    ui->table_timing_results->setItem(
+        row, 0, new QTableWidgetItem(QString::number(k_i)));
+    ui->table_timing_results->setItem(
+        row, 1, new QTableWidgetItem(QString::number(times_spline[i], 'f', 3)));
+    ui->table_timing_results->setItem(
+        row, 2, new QTableWidgetItem(QString::number(times_newton[i], 'f', 3)));
+  }
+
+  // === Построение графиков ===
+  QVector<double> k_plot(k_values.begin(), k_values.end());
+  QVector<double> t_spline(times_spline.begin(), times_spline.end());
+  QVector<double> t_newton(times_newton.begin(), times_newton.end());
+
+  QCPGraph* graph_spline = ui->plot_timing->addGraph();
+  graph_spline->setData(k_plot, t_spline);
+  graph_spline->setName("Кубический сплайн");
+  graph_spline->setPen(QPen(Qt::blue, 2));
+
+  QCPGraph* graph_newton = ui->plot_timing->addGraph();
+  graph_newton->setData(k_plot, t_newton);
+  graph_newton->setName("Полином Ньютона (n=5)");
+  graph_newton->setPen(QPen(Qt::red, 2));
+
+  // Оси
+  ui->plot_timing->xAxis->setLabel("Число точек k");
+  ui->plot_timing->yAxis->setLabel("Среднее время (мс)");
+  ui->plot_timing->legend->setVisible(true);
+  ui->plot_timing->rescaleAxes();
+  ui->plot_timing->replot();
+
+  QMessageBox::information(this, "Готово",
+                           "Исследование завершено. Построены графики "
+                           "зависимости времени от числа точек.");
 }
