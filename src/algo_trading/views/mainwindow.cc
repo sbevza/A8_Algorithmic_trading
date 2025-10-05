@@ -80,7 +80,6 @@ MainWindow::MainWindow(QWidget* parent)
 
   // Количество точек
   ui->spin_interpolation_points->setMaximum(10000);
-  ui->spin_interpolation_points->setValue(200);
 
   // =====================================================================
   // === Настройка QCustomPlot для аппроксимации ===
@@ -144,9 +143,6 @@ MainWindow::MainWindow(QWidget* parent)
   ui->plot_approximation->yAxis->setTickLabelFont(axisFontApprox);
   // =====================================================================
 
-  connect(ui->btn_clear_interpolation, &QPushButton::clicked, this,
-          &MainWindow::onClearInterpolationClicked);
-
   connect(ui->btn_plot_cubic_spline, &QPushButton::clicked, this,
           &MainWindow::onPlotCubicSplineClicked);
 
@@ -155,9 +151,6 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(ui->btn_get_interpolated_value, &QPushButton::clicked, this,
           &MainWindow::onGetInterpolatedValueClicked);
-
-  connect(ui->btn_show_data_points, &QPushButton::clicked, this,
-          &MainWindow::onShowDataPointsToggled);
 
   // === Подключение сигналов для вкладки "Аппроксимация" ===
 
@@ -170,12 +163,6 @@ MainWindow::MainWindow(QWidget* parent)
   connect(ui->btn_get_approx_value, &QPushButton::clicked, this,
           &MainWindow::onGetApproxValueClicked);
 
-  connect(ui->btn_clear_approximation, &QPushButton::clicked, this,
-          &MainWindow::onClearApproximationClicked);
-
-  connect(ui->btn_show_approximation_points, &QPushButton::clicked, this,
-          &MainWindow::onShowApproxPointsToggled);
-
   connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this,
           &MainWindow::onPlotFourGraphsClicked);
 
@@ -184,6 +171,9 @@ MainWindow::MainWindow(QWidget* parent)
           &MainWindow::onRunTimingStudyClicked);
 
   connect(ui->action_CSV, &QAction::triggered, this, &MainWindow::onLoadDataCsvClicked);
+  connect(ui->action_clear_graph, &QAction::triggered, this, &MainWindow::clearPlots);
+  connect(ui->action_views_points, &QAction::triggered, this, &MainWindow::toggleDataPoints);
+  connect(ui->action_base_graph, &QAction::triggered, this, &MainWindow::plotBaseGraph);
 
   updateUiState();
 }
@@ -193,6 +183,10 @@ MainWindow::~MainWindow() {
   delete controller_;
 }
 
+const QVector<QColor> MainWindow::kGraphColors = {
+    Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan
+};
+
 void MainWindow::updateUiState() const {
     const bool hasData = controller_->getDataCount() > 0;
 
@@ -200,14 +194,12 @@ void MainWindow::updateUiState() const {
     ui->btn_plot_cubic_spline->setEnabled(hasData);
     ui->btn_plot_newton_polynomial->setEnabled(hasData);
     ui->btn_get_interpolated_value->setEnabled(hasData);
-    ui->btn_show_data_points->setEnabled(hasData);
     ui->dt_interpolation_input->setEnabled(hasData);
     ui->lbl_interpolation_points_label->setEnabled(hasData);
     ui->spin_newton_degree->setEnabled(hasData);
     ui->spin_interpolation_points->setEnabled(hasData);
     ui->lbl_newton_value->setEnabled(hasData);
     ui->lbl_spline_value->setEnabled(hasData);
-    ui->btn_clear_interpolation->setEnabled(hasData);
     ui->lbl_newton_degree_label->setEnabled(hasData);
 
     // === ВКЛАДКА "АППРОКСИМАЦИЯ" (добавляем) ===
@@ -215,8 +207,6 @@ void MainWindow::updateUiState() const {
     ui->btn_plot_lsq_with_weights->setEnabled(hasData);
     ui->btn_plot_four_graphs->setEnabled(hasData);
     ui->btn_get_approx_value->setEnabled(hasData);
-    ui->btn_clear_approximation->setEnabled(hasData);
-    ui->btn_show_approximation_points->setEnabled(hasData);
     ui->dt_approx_input->setEnabled(hasData);
     ui->spin_approx_points->setEnabled(hasData);
     ui->spin_approx_degree->setEnabled(hasData);
@@ -233,15 +223,35 @@ void MainWindow::updateUiState() const {
     ui->table_timing_results->setEnabled(hasData);
 }
 
-void MainWindow::onClearInterpolationClicked() {  // NOLINT
-  ui->plotWidget->clearGraphs();
-  ui->plotWidget->clearItems();
-  ui->plotWidget->replot();
+void MainWindow::clearPlots(bool all)
+{
+    QList<QCustomPlot*> plotsToClear;
+
+    if (all) {
+        plotsToClear = findChildren<QCustomPlot*>();
+    } else {
+        QWidget* currentTab = ui->tabWidget->currentWidget();
+
+        if (currentTab == ui->aproximation) {
+            plotsToClear << ui->plot_approximation;
+        } else if (currentTab == ui->inerpolation) {
+            plotsToClear << ui->plotWidget;
+        } else if (currentTab == ui->timeStats) {
+            plotsToClear << ui->plot_timing;
+        }
+    }
+
+    for (int i = 0; i < plotsToClear.size(); ++i) {
+        QCustomPlot* plot = plotsToClear[i];
+        plot->clearGraphs();
+        plot->clearItems();
+        plot->replot();
+    }
 }
 
+
 void MainWindow::onLoadDataCsvClicked() {
-  onClearInterpolationClicked();
-  onClearApproximationClicked();
+  clearPlots(true);
 
   const QString defaultDir = "../materials";
   const QString fileName = QFileDialog::getOpenFileName(
@@ -279,6 +289,70 @@ void MainWindow::onLoadDataCsvClicked() {
   updateUiState();
   setupDateTimeEditLimits();
 }
+
+void MainWindow::plotBaseGraph() {
+    if (controller_->getDataCount() == 0) {
+        QMessageBox::information(this, "Нет данных", "Нет загруженных данных для отображения.");
+        return;
+    }
+
+    QWidget* currentTab = ui->tabWidget->currentWidget();
+    QCustomPlot* plot = nullptr;
+
+    if (currentTab == ui->aproximation) {
+        plot = ui->plot_approximation;
+    } else if (currentTab == ui->inerpolation) {
+        plot = ui->plotWidget;
+    } else if (currentTab == ui->timeStats) {
+        plot = ui->plot_timing;
+    } else {
+        return;
+    }
+
+    // Проверяем, не добавлен ли уже график "Исходные данные"
+    const QString baseLabel = "Исходные данные";
+    for (int i = 0; i < plot->graphCount(); ++i) {
+        if (plot->graph(i)->name().contains(baseLabel)) {
+            QMessageBox::information(this, "Уже добавлено", "График исходных данных уже отображается.");
+            return;
+        }
+    }
+
+    if (plot->graphCount() >= 5) {
+        QMessageBox::warning(this, "Лимит", "Не более 5 графиков на одном графике.");
+        return;
+    }
+
+    const auto& data = controller_->getTradeData();
+    QVector<double> x, y;
+    x.reserve(data.size());
+    y.reserve(data.size());
+
+    for (const auto& point : data) {
+        x.append(point.timestamp);
+        y.append(point.close);
+    }
+
+    const int colorIndex = plot->graphCount() % kGraphColors.size();
+    QColor color = kGraphColors[colorIndex];
+
+    QCPGraph* graph = plot->addGraph();
+    graph->setData(x, y);
+    graph->setName(QString("● Исходные данные — %1").arg(getFileNameFromTitle()));
+    graph->setLineStyle(QCPGraph::lsLine);
+
+    static constexpr double kDefaultGraphLineWidth = 2.0;
+    graph->setPen(QPen(color, kDefaultGraphLineWidth));
+
+    graph->setScatterStyle(QCPScatterStyle::ssNone);
+
+    if (plot->graphCount() == 1) {
+        plot->rescaleAxes();
+    }
+
+    plot->replot();
+}
+
 
 void MainWindow::onPlotCubicSplineClicked() {
   plotInterpolatedFunction(
@@ -385,18 +459,26 @@ void MainWindow::onGetInterpolatedValueClicked() {  // NOLINT
   ui->lbl_newton_value->setText("Значение полинома: " + newtonText);
 }
 
-void MainWindow::onShowDataPointsToggled() {
-  showPoints_ = !showPoints_;
+void MainWindow::toggleDataPoints()
+{
+    showPoints_ = !showPoints_;
 
-  for (int i = 0; i < ui->plotWidget->graphCount(); ++i) {
-    QCPGraph* g = ui->plotWidget->graph(i);
-    QColor color = g->pen().color();
-    g->setScatterStyle(showPoints_ ? QCPScatterStyle(QCPScatterStyle::ssCircle,
-                                                     color, color, 6)
-                                   : QCPScatterStyle::ssNone);
-  }
+    const QList<QCustomPlot*> plotsToModify = findChildren<QCustomPlot*>();
 
-  ui->plotWidget->replot();
+    for (QCustomPlot* plot : plotsToModify) {
+        for (int i = 0; i < plot->graphCount(); ++i) {
+            QCPGraph* g = plot->graph(i);
+            double lineWidth = g->pen().widthF();
+            double pointSize = lineWidth * 2.0;
+
+            g->setScatterStyle(showPoints_ ? QCPScatterStyle(QCPScatterStyle::ssCircle,
+                                                             Qt::black,
+                                                             Qt::black,
+                                                             pointSize)
+                                           : QCPScatterStyle::ssNone);
+        }
+        plot->replot();
+    }
 }
 
 void MainWindow::plotInterpolatedFunction(
@@ -438,20 +520,15 @@ void MainWindow::plotInterpolatedGraph(const QVector<double>& x,
     return;
   }
 
-  QCPGraph* graph = ui->plotWidget->addGraph();  // ← теперь это QCPGraph*
+  QCPGraph* graph = ui->plotWidget->addGraph();
   graph->setData(x, y);
   graph->setName(label);
 
-  static QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta,
-                                   Qt::darkCyan};
   const int index = ui->plotWidget->graphCount() - 1;
-  QColor color = colors[index % colors.size()];
-  graph->setPen(QPen(color, 2));
+  QColor color = kGraphColors[index % kGraphColors.size()];
+  graph->setPen(QPen(color, kDefaultGraphLineWidth));
 
-  // Применяем стиль: точки или нет
-  graph->setScatterStyle(
-      showPoints_ ? QCPScatterStyle(QCPScatterStyle::ssCircle, color, color, 6)
-                  : QCPScatterStyle::ssNone);
+  graph->setScatterStyle(QCPScatterStyle::ssNone);
 
   ui->plotWidget->rescaleAxes();
   ui->plotWidget->replot();
@@ -524,10 +601,8 @@ void MainWindow::plotApproximation(bool use_weights) {
   graph->setData(x, y);
   graph->setName(label);
 
-  static QVector<QColor> colors = {Qt::blue, Qt::red, Qt::green, Qt::magenta,
-                                   Qt::darkCyan};
-  QColor color = colors[ui->plot_approximation->graphCount() - 1];
-  graph->setPen(QPen(color, 2));
+  QColor color = kGraphColors[(ui->plot_approximation->graphCount() - 1) % kGraphColors.size()];
+  graph->setPen(QPen(color, kDefaultGraphLineWidth));
 
   // Исходные точки — жирнее, другим цветом
   if (showApproxPoints_) {
@@ -539,9 +614,8 @@ void MainWindow::plotApproximation(bool use_weights) {
       py.append(td.close);
     }
     points->setData(px, py);
-    points->setScatterStyle(
-        QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
-    points->setPen(QPen(Qt::yellow, 1.5));
+    points->setScatterStyle(QCPScatterStyle::ssNone);
+    graph->setPen(QPen(color, kDefaultGraphLineWidth));
     points->setName("Исходные точки");
   }
 
@@ -584,57 +658,16 @@ QString MainWindow::getFileNameFromTitle() const {
   return fileName;
 }
 
-void MainWindow::onClearApproximationClicked() {
-  ui->plot_approximation->clearGraphs();
-  ui->plot_approximation->clearItems();
-  ui->plot_approximation->replot();
-}
-
-void MainWindow::onShowApproxPointsToggled() {
-  showApproxPoints_ = !showApproxPoints_;
-
-  // Удаляем существующие точки (если есть)
-  for (int i = 0; i < ui->plot_approximation->graphCount(); ++i) {
-    QCPGraph* g = ui->plot_approximation->graph(i);
-    if (g->name() == "Исходные точки") {
-      ui->plot_approximation->removeGraph(g);
-      break;
-    }
-  }
-
-  // Если включено — добавляем точки
-  if (showApproxPoints_) {
-    const auto& data = controller_->getTradeData();
-    if (!data.empty()) {
-      QCPGraph* points = ui->plot_approximation->addGraph();
-
-      QVector<double> px, py;
-      for (const auto& td : data) {
-        px.append(td.timestamp);
-        py.append(td.close);
-      }
-
-      points->setData(px, py);
-      points->setName("Исходные точки");
-      points->setPen(QPen(Qt::yellow, 1.5));
-      points->setScatterStyle(QCPScatterStyle(
-          QCPScatterStyle::ssCircle,  // форма
-          Qt::black,                  // обводка
-          Qt::yellow,                 // заливка
-          8                           // радиус
-          ));
-    }
-  }
-
-  ui->plot_approximation->replot();
-}
-
 void MainWindow::onPlotFourGraphsClicked() {
+    if (ui->plot_approximation->graphCount()+4 >= 5) {
+        QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
+        return;
+    }
+
+
   const int numPoints = ui->spin_approx_points->value();
   const int days = ui->spin_extrapolate_days->value();
 
-  ui->plot_approximation->clearGraphs();
-  ui->plot_approximation->clearItems();
   last_extrapolate_days_ = days;
 
   struct PlotConfig {
@@ -645,11 +678,11 @@ void MainWindow::onPlotFourGraphsClicked() {
   };
 
   static QVector<PlotConfig> configs = {
-      {1, false, "степень 1, без весов", Qt::blue},
-      {2, false, "степень 2, без весов", Qt::red},
-      {1, true, "степень 1, с весами", Qt::green},
-      {2, true, "степень 2, с весами", Qt::magenta}};
-
+      {1, false, "n=1, без весов", kGraphColors[0]},
+      {2, false, "n=2, без весов", kGraphColors[1]},
+      {1, true,  "n=1, с весами",  kGraphColors[2]},
+      {2, true,  "n=2, с весами",  kGraphColors[3]}
+  };
   for (const auto& config : configs) {
     controller_->buildLeastSquaresModel(config.degree, config.use_weights);
 
@@ -672,7 +705,7 @@ void MainWindow::onPlotFourGraphsClicked() {
                         .arg(getFileNameFromTitle());
 
     graph->setName(label);
-    graph->setPen(QPen(config.color, 2));
+    graph->setPen(QPen(config.color, kDefaultGraphLineWidth));
     graph->setScatterStyle(QCPScatterStyle::ssNone);
   }
 
@@ -687,7 +720,7 @@ void MainWindow::onPlotFourGraphsClicked() {
     points->setData(px, py);
     points->setScatterStyle(
         QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
-    points->setPen(QPen(Qt::yellow, 1.5));
+    points->setPen(QPen(Qt::yellow, kDefaultGraphLineWidth));
     points->setName("Исходные точки");
   }
 
@@ -761,8 +794,6 @@ void MainWindow::onRunTimingStudyClicked() {
         // Правильное распределение точек от N до k_max
         const int k_i = N + (k_max - N) * i / (h - 1);
         k_values[i] = k_i;
-
-        qDebug() << "Измерение" << i+1 << "/" << h << "для k =" << k_i;
 
         // Генерируем точки для интерполяции
         QVector<double> x = generateX(xStart, xEnd, k_i);
@@ -859,15 +890,14 @@ void MainWindow::onRunTimingStudyClicked() {
     QCPGraph* graph_spline = ui->plot_timing->addGraph();
     graph_spline->setData(k_plot, t_spline);
     graph_spline->setName("Кубический сплайн");
-    graph_spline->setPen(QPen(Qt::blue, 2));
-    graph_spline->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::blue, 6));
-
+    graph_spline->setPen(QPen(kGraphColors[0], kDefaultGraphLineWidth));
+    graph_spline->setScatterStyle(QCPScatterStyle::ssNone);
     // График Ньютона
     QCPGraph* graph_newton = ui->plot_timing->addGraph();
     graph_newton->setData(k_plot, t_newton);
     graph_newton->setName("Полином Ньютона (n=5)");
-    graph_newton->setPen(QPen(Qt::red, 2));
-    graph_newton->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::red, 6));
+    graph_newton->setPen(QPen(kGraphColors[1], kDefaultGraphLineWidth));
+    graph_newton->setScatterStyle(QCPScatterStyle::ssNone);
 
     // Настройка осей
     ui->plot_timing->xAxis->setLabel("Число точек k");
@@ -888,9 +918,6 @@ void MainWindow::onRunTimingStudyClicked() {
                               "• Максимальное k: %2\n"
                               "• Разбиений h: %3\n"
                               "• Измерений на точку: 10\n\n"
-                              "Результаты:\n"
-                              "• Среднее время сплайна: %4 мс\n"
-                              "• Среднее время Ньютона: %5 мс\n\n"
                               "Графики построены успешно!")
                           .arg(N)
                           .arg(k_max)

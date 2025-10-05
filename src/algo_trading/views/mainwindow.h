@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "controllers/algo_trading_controller.h"
+#include "qcustomplot/qcustomplot.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -21,19 +22,21 @@ class MainWindow : public QMainWindow {
   ~MainWindow() override;
 
  private slots:
+
+  void clearPlots(bool all);
+  void toggleDataPoints();
+  void plotBaseGraph();
+
   // === Интерполяция ===
   void onLoadDataCsvClicked();
-  void onClearInterpolationClicked();
   void onPlotCubicSplineClicked();
   void onPlotNewtonPolynomialClicked();
   void onGetInterpolatedValueClicked();
-  void onShowDataPointsToggled();
 
   // === Аппроксимация ===
   void onPlotLsqNoWeightsClicked();
   void onPlotLsqWithWeightsClicked();
   void onGetApproxValueClicked();
-  void onClearApproximationClicked();
   void onShowApproxPointsToggled();
   void onPlotFourGraphsClicked();
 
@@ -46,6 +49,10 @@ class MainWindow : public QMainWindow {
   [[nodiscard]] QString getFileNameFromTitle() const;
   [[nodiscard]] QString createGraphLabel(const QString& type, int degree,
                                          int pointCount) const;
+
+  static const QVector<QColor> kGraphColors;
+  static constexpr double kDefaultGraphLineWidth = 2.0;
+
   void updateUiState() const;
   void setupDateTimeEditLimits() const;
   bool showPoints_ = false;
@@ -58,6 +65,7 @@ class MainWindow : public QMainWindow {
       const QString& type, int degree,
       const std::function<double(const QDateTime&)>& valueFunc, int pointCount);
   void plotApproximation(bool use_weights);
+
 };
 
 #endif  // SRC_MAINWINDOW_H_
