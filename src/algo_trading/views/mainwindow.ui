@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>700</width>
-    <height>517</height>
+    <height>526</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -451,7 +451,7 @@
            </layout>
           </item>
           <item>
-           <widget class="QGroupBox" name="">
+           <widget class="QGroupBox" name="groupBox">
             <layout class="QVBoxLayout" name="verticalLayout_33">
              <item>
               <widget class="QPushButton" name="btn_plot_four_graphs">

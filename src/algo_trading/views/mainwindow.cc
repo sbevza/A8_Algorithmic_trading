@@ -166,6 +166,9 @@ MainWindow::MainWindow(QWidget* parent)
   connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this,
           &MainWindow::onPlotFourGraphsClicked);
 
+  connect(ui->spin_extrapolate_days, QOverload<int>::of(&QSpinBox::valueChanged),
+          this, &MainWindow::setupDateTimeEditLimits);
+
   // === Подключение сигналов для вкладки "Исследования" ===
   connect(ui->btn_run_timing_study, &QPushButton::clicked, this,
           &MainWindow::onRunTimingStudyClicked);
@@ -426,19 +429,23 @@ QString MainWindow::createGraphLabel(const QString& type, int degree,
 }
 
 void MainWindow::setupDateTimeEditLimits() const {
-  const auto data = controller_->getTradeData();
-  if (data.empty()) return;
+    const auto data = controller_->getTradeData();
+    if (data.empty()) return;
 
-  const QDateTime minDate = QDateTime::fromSecsSinceEpoch(
-      static_cast<qint64>(data.front().timestamp));
-  const QDateTime maxDate =
-      QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.back().timestamp));
+    const QDateTime minDate = QDateTime::fromSecsSinceEpoch(
+        static_cast<qint64>(data.front().timestamp));
+    const QDateTime maxDataDate = QDateTime::fromSecsSinceEpoch(
+        static_cast<qint64>(data.back().timestamp));
 
-  ui->dt_interpolation_input->setDateTimeRange(minDate, maxDate);
-  ui->dt_interpolation_input->setDateTime(minDate);
-  ui->dt_approx_input->setDateTimeRange(minDate, maxDate);
-  ui->dt_approx_input->setDateTime(minDate);
+    int extrapolateDays = ui->spin_extrapolate_days->value();
 
+    QDateTime maxAllowedDate = maxDataDate.addDays(extrapolateDays);
+
+    ui->dt_interpolation_input->setDateTimeRange(minDate, maxDataDate);
+    ui->dt_interpolation_input->setDateTime(minDate);
+
+    ui->dt_approx_input->setDateTimeRange(minDate, maxAllowedDate);
+    ui->dt_approx_input->setDateTime(minDate);
 }
 
 void MainWindow::onGetInterpolatedValueClicked() {  // NOLINT
@@ -558,69 +565,69 @@ void MainWindow::onPlotLsqWithWeightsClicked() {
 }
 
 void MainWindow::plotApproximation(bool use_weights) {
-  const int degree = ui->spin_approx_degree->value();
-  const int days = ui->spin_extrapolate_days->value();
-  const int numPoints = ui->spin_approx_points->value();
+    const int degree = ui->spin_approx_degree->value();
+    const int days = ui->spin_extrapolate_days->value();
+    const int numPoints = ui->spin_approx_points->value();
 
-  // По заданию: если M изменилось — очистить график
-  if (days != last_extrapolate_days_) {
-    ui->plot_approximation->clearGraphs();
-    ui->plot_approximation->clearItems();
-    last_extrapolate_days_ = days;
-  }
-
-  if (ui->plot_approximation->graphCount() >= 5) {
-    QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
-    return;
-  }
-
-  controller_->buildLeastSquaresModel(degree, use_weights);
-
-  const auto curve = controller_->generateApproximationCurve(
-      degree, use_weights, numPoints, days);
-
-  if (curve.empty()) {
-    QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
-    return;
-  }
-
-  QVector<double> x, y;
-  for (const auto& [xi, yi] : curve) {
-    x.append(xi);
-    y.append(yi);
-  }
-
-  QString method = use_weights ? "LSQ (с весами)" : "LSQ (без весов)";
-  QString label = QString("● %1, степень=%2, M=%3 — %4")
-                      .arg(method)
-                      .arg(degree)
-                      .arg(days)
-                      .arg(getFileNameFromTitle());
-
-  QCPGraph* graph = ui->plot_approximation->addGraph();
-  graph->setData(x, y);
-  graph->setName(label);
-
-  QColor color = kGraphColors[(ui->plot_approximation->graphCount() - 1) % kGraphColors.size()];
-  graph->setPen(QPen(color, kDefaultGraphLineWidth));
-
-  // Исходные точки — жирнее, другим цветом
-  if (showApproxPoints_) {
-    QCPGraph* points = ui->plot_approximation->addGraph();
-    QVector<double> px, py;
-    const auto& data = controller_->getTradeData();
-    for (const auto& td : data) {
-      px.append(td.timestamp);
-      py.append(td.close);
+    if (days != last_extrapolate_days_ || degree != last_approx_degree_) {
+        ui->plot_approximation->clearGraphs();
+        ui->plot_approximation->clearItems();
+        last_extrapolate_days_ = days;
+        last_approx_degree_ = degree;
     }
-    points->setData(px, py);
-    points->setScatterStyle(QCPScatterStyle::ssNone);
-    graph->setPen(QPen(color, kDefaultGraphLineWidth));
-    points->setName("Исходные точки");
-  }
 
-  ui->plot_approximation->rescaleAxes();
-  ui->plot_approximation->replot();
+    if (ui->plot_approximation->graphCount() >= 5) {
+        QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
+        return;
+    }
+
+    controller_->buildLeastSquaresModel(degree, use_weights);
+
+    const auto curve = controller_->generateApproximationCurve(
+        degree, use_weights, numPoints, days);
+
+    if (curve.empty()) {
+        QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
+        return;
+    }
+
+    QVector<double> x, y;
+    for (const auto& [xi, yi] : curve) {
+        x.append(xi);
+        y.append(yi);
+    }
+
+    QString method = use_weights ? "LSQ (с весами)" : "LSQ (без весов)";
+    QString label = QString("● %1, степень=%2, M=%3 — %4")
+                        .arg(method)
+                        .arg(degree)
+                        .arg(days)
+                        .arg(getFileNameFromTitle());
+
+    QCPGraph* graph = ui->plot_approximation->addGraph();
+    graph->setData(x, y);
+    graph->setName(label);
+
+    QColor color = kGraphColors[(ui->plot_approximation->graphCount() - 1) % kGraphColors.size()];
+    graph->setPen(QPen(color, kDefaultGraphLineWidth));
+
+    // Исходные точки — жирнее, другим цветом
+    if (showApproxPoints_) {
+        QCPGraph* points = ui->plot_approximation->addGraph();
+        QVector<double> px, py;
+        const auto& data = controller_->getTradeData();
+        for (const auto& td : data) {
+            px.append(td.timestamp);
+            py.append(td.close);
+        }
+        points->setData(px, py);
+        points->setScatterStyle(QCPScatterStyle::ssNone);
+        graph->setPen(QPen(color, kDefaultGraphLineWidth));
+        points->setName("Исходные точки");
+    }
+
+    ui->plot_approximation->rescaleAxes();
+    ui->plot_approximation->replot();
 }
 
 void MainWindow::onGetApproxValueClicked() {
@@ -659,7 +666,7 @@ QString MainWindow::getFileNameFromTitle() const {
 }
 
 void MainWindow::onPlotFourGraphsClicked() {
-    if (ui->plot_approximation->graphCount()+4 >= 5) {
+    if (ui->plot_approximation->graphCount()+4 > 5) {
         QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
         return;
     }
@@ -927,3 +934,4 @@ void MainWindow::onRunTimingStudyClicked() {
 
     QMessageBox::information(this, "Исследование завершено", results);
 }
+

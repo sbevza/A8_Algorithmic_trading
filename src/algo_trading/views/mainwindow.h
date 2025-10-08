@@ -43,7 +43,9 @@ class MainWindow : public QMainWindow {
   // === Исследования ===
   void onRunTimingStudyClicked();
 
- private:
+  void on_spin_approx_degree_valueChanged(int arg1);
+
+  private:
   Ui::MainWindow* ui;
   s21::AlgoTradingController* controller_;
   [[nodiscard]] QString getFileNameFromTitle() const;
@@ -58,6 +60,7 @@ class MainWindow : public QMainWindow {
   bool showPoints_ = false;
   bool showApproxPoints_ = false;
   int last_extrapolate_days_ = 0;
+  int last_approx_degree_ = 1;
   static QVector<double> generateX(double xStart, double xEnd, int numPoints);
   void plotInterpolatedGraph(const QVector<double>& x, const QVector<double>& y,
                              const QString& label);
