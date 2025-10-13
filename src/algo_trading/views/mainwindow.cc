@@ -1,5 +1,3 @@
-// src/algo_trading/views/mainwindow.cc
-
 #include "mainwindow.h"
 
 #include <QDateTime>
@@ -8,233 +6,160 @@
 #include <QMessageBox>
 #include <QPen>
 #include <QSharedPointer>
-#include <functional>
+#include <QFileInfo>
+#include <QProgressDialog>
+#include <QApplication>
+#include <chrono>
+#include <vector>
 
 #include "qcustomplot/qcustomplot.h"
 #include "ui_mainwindow.h"
 
+using namespace std::chrono_literals;
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow),
-      controller_(new s21::AlgoTradingController) {
-  ui->setupUi(this);
+    ui(std::make_unique<Ui::MainWindow>()),
+    controller_(std::make_unique<s21::AlgoTradingController>()) {
+    ui->setupUi(this);
 
-  // === Настройка QCustomPlot ===
-  ui->plotWidget->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom |
-                                  QCP::iSelectPlottables);
-  ui->plotWidget->axisRect()->setupFullAxesBox();
+    setupPlot(ui->plotWidget);
+    setupPlot(ui->plot_approximation);
+    setupPlot(ui->plot_timing);
 
-  // Тикер времени
-  const QSharedPointer<QCPAxisTickerDateTime> dateTicker(
-      new QCPAxisTickerDateTime);
-  dateTicker->setDateTimeFormat("dd.MM.yyyy");
-  dateTicker->setDateTimeSpec(Qt::UTC);
-  ui->plotWidget->xAxis->setTicker(dateTicker);
+    ui->spin_interpolation_points->setMaximum(10000);
 
-  // Оси
-  ui->plotWidget->xAxis->setLabel("Дата");
-  ui->plotWidget->yAxis->setLabel("Цена");
-  ui->plotWidget->xAxis->setLabelColor(Qt::darkBlue);
-  ui->plotWidget->yAxis->setLabelColor(Qt::darkBlue);
-  ui->plotWidget->xAxis->setTickLabelColor(Qt::darkGray);
-  ui->plotWidget->yAxis->setTickLabelColor(Qt::darkGray);
+    // --- Сигналы: Интерполяция ---
+    connect(ui->btn_plot_cubic_spline, &QPushButton::clicked, this, &MainWindow::onPlotCubicSplineClicked);
+    connect(ui->btn_plot_newton_polynomial, &QPushButton::clicked, this, &MainWindow::onPlotNewtonPolynomialClicked);
+    connect(ui->btn_get_interpolated_value, &QPushButton::clicked, this, &MainWindow::onGetInterpolatedValueClicked);
 
-  // Фон
-  ui->plotWidget->setBackground(QColor(245, 245, 245));  // светло-серый фон
+    // --- Сигналы: Аппроксимация ---
+    connect(ui->btn_plot_lsq_no_weights, &QPushButton::clicked, this, &MainWindow::onPlotLsqNoWeightsClicked);
+    connect(ui->btn_plot_lsq_with_weights, &QPushButton::clicked, this, &MainWindow::onPlotLsqWithWeightsClicked);
+    connect(ui->btn_get_approx_value, &QPushButton::clicked, this, &MainWindow::onGetApproxValueClicked);
+    connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this, &MainWindow::onPlotFourGraphsClicked);
+    connect(ui->spin_extrapolate_days, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::setupDateTimeEditLimits);
 
-  // Сетка — мягкие линии
-  const QPen majorGridPen(Qt::lightGray, 1, Qt::SolidLine);
-  const QPen minorGridPen(Qt::gray, 0.8, Qt::DotLine);
+    // --- Сигналы: Исследования ---
+    connect(ui->btn_run_timing_study, &QPushButton::clicked, this, &MainWindow::onRunTimingStudyClicked);
 
-  ui->plotWidget->xAxis->grid()->setPen(majorGridPen);
-  ui->plotWidget->yAxis->grid()->setPen(majorGridPen);
-  ui->plotWidget->xAxis->grid()->setSubGridPen(minorGridPen);
-  ui->plotWidget->yAxis->grid()->setSubGridPen(minorGridPen);
-  ui->plotWidget->xAxis->grid()->setSubGridVisible(true);
-  ui->plotWidget->yAxis->grid()->setSubGridVisible(true);
+    // --- Глобальные действия ---
+    connect(ui->action_CSV, &QAction::triggered, this, &MainWindow::onLoadDataCsvClicked);
+    connect(ui->action_clear_graph, &QAction::triggered, this, &MainWindow::clearPlots);
+    connect(ui->action_views_points, &QAction::triggered, this, &MainWindow::toggleDataPoints);
+    connect(ui->action_base_graph, &QAction::triggered, this, &MainWindow::plotBaseGraph);
 
-  // Легенда
-  ui->plotWidget->legend->setVisible(true);
-  ui->plotWidget->legend->setBrush(QColor(255, 255, 255, 220));
-  ui->plotWidget->legend->setBorderPen(QPen(Qt::lightGray, 1));
-  ui->plotWidget->legend->setFont(QFont("Arial", 9));
-
-  // Диапазон по умолчанию: 2020–2025
-  const QDateTime start = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
-  const QDateTime end = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
-
-  const auto start_sec = static_cast<double>(start.toSecsSinceEpoch());
-  const auto end_sec = static_cast<double>(end.toSecsSinceEpoch());
-
-  ui->plotWidget->xAxis->setRange(start_sec, end_sec);
-  ui->plotWidget->yAxis->setRange(0, 100);
-
-  // Ограничение масштабирования
-  ui->plotWidget->xAxis->setRangeLower(start_sec);
-
-  // Настройка шрифтов
-  QFont axisFont = font();
-  axisFont.setPointSize(9);
-  ui->plotWidget->xAxis->setTickLabelFont(axisFont);
-  ui->plotWidget->yAxis->setTickLabelFont(axisFont);
-
-  // Количество точек
-  ui->spin_interpolation_points->setMaximum(10000);
-
-  // =====================================================================
-  // === Настройка QCustomPlot для аппроксимации ===
-  ui->plot_approximation->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom |
-                                          QCP::iSelectPlottables);
-  ui->plot_approximation->axisRect()->setupFullAxesBox();
-
-  // Тикер времени
-  const QSharedPointer<QCPAxisTickerDateTime> dateTickerApprox(
-      new QCPAxisTickerDateTime);
-  dateTickerApprox->setDateTimeFormat("dd.MM.yyyy");
-  dateTickerApprox->setDateTimeSpec(Qt::UTC);
-  ui->plot_approximation->xAxis->setTicker(dateTickerApprox);
-
-  // Оси
-  ui->plot_approximation->xAxis->setLabel("Дата");
-  ui->plot_approximation->yAxis->setLabel("Цена");
-  ui->plot_approximation->xAxis->setLabelColor(Qt::darkBlue);
-  ui->plot_approximation->yAxis->setLabelColor(Qt::darkBlue);
-  ui->plot_approximation->xAxis->setTickLabelColor(Qt::darkGray);
-  ui->plot_approximation->yAxis->setTickLabelColor(Qt::darkGray);
-
-  // Фон
-  ui->plot_approximation->setBackground(QColor(245, 245, 245));
-
-  // Сетка — мягкие линии
-  const QPen majorGridPenApprox(Qt::lightGray, 1, Qt::SolidLine);
-  const QPen minorGridPenApprox(Qt::gray, 0.8, Qt::DotLine);
-
-  ui->plot_approximation->xAxis->grid()->setPen(majorGridPenApprox);
-  ui->plot_approximation->yAxis->grid()->setPen(majorGridPenApprox);
-  ui->plot_approximation->xAxis->grid()->setSubGridPen(minorGridPenApprox);
-  ui->plot_approximation->yAxis->grid()->setSubGridPen(minorGridPenApprox);
-  ui->plot_approximation->xAxis->grid()->setSubGridVisible(true);
-  ui->plot_approximation->yAxis->grid()->setSubGridVisible(true);
-
-  // Легенда
-  ui->plot_approximation->legend->setVisible(true);
-  ui->plot_approximation->legend->setBrush(QColor(255, 255, 255, 220));
-  ui->plot_approximation->legend->setBorderPen(QPen(Qt::lightGray, 1));
-  ui->plot_approximation->legend->setFont(QFont("Arial", 9));
-
-  // Диапазон по умолчанию: 2020–2025
-  const QDateTime startApprox =
-      QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
-  const QDateTime endApprox = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
-  const auto start_secApprox =
-      static_cast<double>(startApprox.toSecsSinceEpoch());
-  const auto end_secApprox = static_cast<double>(endApprox.toSecsSinceEpoch());
-
-  ui->plot_approximation->xAxis->setRange(start_secApprox, end_secApprox);
-  ui->plot_approximation->yAxis->setRange(0, 100);
-
-  // Ограничение масштабирования
-  ui->plot_approximation->xAxis->setRangeLower(start_secApprox);
-
-  // Настройка шрифтов
-  QFont axisFontApprox = font();
-  axisFontApprox.setPointSize(9);
-  ui->plot_approximation->xAxis->setTickLabelFont(axisFontApprox);
-  ui->plot_approximation->yAxis->setTickLabelFont(axisFontApprox);
-  // =====================================================================
-
-  connect(ui->btn_plot_cubic_spline, &QPushButton::clicked, this,
-          &MainWindow::onPlotCubicSplineClicked);
-
-  connect(ui->btn_plot_newton_polynomial, &QPushButton::clicked, this,
-          &MainWindow::onPlotNewtonPolynomialClicked);
-
-  connect(ui->btn_get_interpolated_value, &QPushButton::clicked, this,
-          &MainWindow::onGetInterpolatedValueClicked);
-
-  // === Подключение сигналов для вкладки "Аппроксимация" ===
-
-  connect(ui->btn_plot_lsq_no_weights, &QPushButton::clicked, this,
-          &MainWindow::onPlotLsqNoWeightsClicked);
-
-  connect(ui->btn_plot_lsq_with_weights, &QPushButton::clicked, this,
-          &MainWindow::onPlotLsqWithWeightsClicked);
-
-  connect(ui->btn_get_approx_value, &QPushButton::clicked, this,
-          &MainWindow::onGetApproxValueClicked);
-
-  connect(ui->btn_plot_four_graphs, &QPushButton::clicked, this,
-          &MainWindow::onPlotFourGraphsClicked);
-
-  connect(ui->spin_extrapolate_days, QOverload<int>::of(&QSpinBox::valueChanged),
-          this, &MainWindow::setupDateTimeEditLimits);
-
-  // === Подключение сигналов для вкладки "Исследования" ===
-  connect(ui->btn_run_timing_study, &QPushButton::clicked, this,
-          &MainWindow::onRunTimingStudyClicked);
-
-  connect(ui->action_CSV, &QAction::triggered, this, &MainWindow::onLoadDataCsvClicked);
-  connect(ui->action_clear_graph, &QAction::triggered, this, &MainWindow::clearPlots);
-  connect(ui->action_views_points, &QAction::triggered, this, &MainWindow::toggleDataPoints);
-  connect(ui->action_base_graph, &QAction::triggered, this, &MainWindow::plotBaseGraph);
-
-  updateUiState();
+    updateUiState();
 }
 
-MainWindow::~MainWindow() {
-  delete ui;
-  delete controller_;
-}
+MainWindow::~MainWindow() = default;
 
 const QVector<QColor> MainWindow::kGraphColors = {
-    Qt::blue, Qt::red, Qt::green, Qt::magenta, Qt::darkCyan
+    Qt::blue, Qt::red, Qt::darkGreen, Qt::magenta, QColor(255, 140, 0)
 };
 
-void MainWindow::updateUiState() const {
-    const bool hasData = controller_->getDataCount() > 0;
+void MainWindow::setupPlot(QCustomPlot* plot) {
+    plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    plot->axisRect()->setupFullAxesBox();
 
-    // === ВКЛАДКА "ИНТЕРПОЛЯЦИЯ" (уже есть) ===
-    ui->btn_plot_cubic_spline->setEnabled(hasData);
-    ui->btn_plot_newton_polynomial->setEnabled(hasData);
-    ui->btn_get_interpolated_value->setEnabled(hasData);
-    ui->dt_interpolation_input->setEnabled(hasData);
-    ui->lbl_interpolation_points_label->setEnabled(hasData);
-    ui->spin_newton_degree->setEnabled(hasData);
-    ui->spin_interpolation_points->setEnabled(hasData);
-    ui->lbl_newton_value->setEnabled(hasData);
-    ui->lbl_spline_value->setEnabled(hasData);
-    ui->lbl_newton_degree_label->setEnabled(hasData);
+    auto dateTicker = QSharedPointer<QCPAxisTickerDateTime>::create();
+    dateTicker->setDateTimeFormat("dd.MM.yyyy");
+    dateTicker->setDateTimeSpec(Qt::UTC);
+    plot->xAxis->setTicker(dateTicker);
 
-    // === ВКЛАДКА "АППРОКСИМАЦИЯ" (добавляем) ===
-    ui->btn_plot_lsq_no_weights->setEnabled(hasData);
-    ui->btn_plot_lsq_with_weights->setEnabled(hasData);
-    ui->btn_plot_four_graphs->setEnabled(hasData);
-    ui->btn_get_approx_value->setEnabled(hasData);
-    ui->dt_approx_input->setEnabled(hasData);
-    ui->spin_approx_points->setEnabled(hasData);
-    ui->spin_approx_degree->setEnabled(hasData);
-    ui->spin_extrapolate_days->setEnabled(hasData);
-    ui->lbl_approx_value->setEnabled(hasData);
-    ui->lbl_approx_points_label->setEnabled(hasData);
-    ui->lbl_approx_degree_label->setEnabled(hasData);
-    ui->lbl_extrapolate_days_label->setEnabled(hasData);
+    plot->xAxis->setLabel("Дата");
+    plot->yAxis->setLabel("Цена");
+    plot->xAxis->setLabelColor(Qt::darkBlue);
+    plot->yAxis->setLabelColor(Qt::darkBlue);
+    plot->xAxis->setTickLabelColor(Qt::darkGray);
+    plot->yAxis->setTickLabelColor(Qt::darkGray);
 
-    // === ВКЛАДКА "ИССЛЕДОВАНИЯ" (добавляем) ===
-    ui->btn_run_timing_study->setEnabled(hasData);
-    ui->spin_stats_max_points->setEnabled(hasData);
-    ui->spin_stats_partitions->setEnabled(hasData);
-    ui->table_timing_results->setEnabled(hasData);
+    plot->setBackground(QColor(245, 245, 245));
+
+    const QPen majorGridPen(Qt::lightGray, 1, Qt::SolidLine);
+    const QPen minorGridPen(Qt::gray, 0.8, Qt::DotLine);
+    plot->xAxis->grid()->setPen(majorGridPen);
+    plot->yAxis->grid()->setPen(majorGridPen);
+    plot->xAxis->grid()->setSubGridPen(minorGridPen);
+    plot->yAxis->grid()->setSubGridPen(minorGridPen);
+    plot->xAxis->grid()->setSubGridVisible(true);
+    plot->yAxis->grid()->setSubGridVisible(true);
+
+    plot->legend->setVisible(true);
+    plot->legend->setBrush(QColor(255, 255, 255, 220));
+    plot->legend->setBorderPen(QPen(Qt::lightGray, 1));
+    plot->legend->setFont(QFont("Arial", 9));
+
+    const QDateTime start = QDateTime::fromString("2020-01-01", "yyyy-MM-dd");
+    const QDateTime end = QDateTime::fromString("2025-01-01", "yyyy-MM-dd");
+    plot->xAxis->setRange(start.toSecsSinceEpoch(), end.toSecsSinceEpoch());
+    plot->yAxis->setRange(0, 100);
+    plot->xAxis->setRangeLower(start.toSecsSinceEpoch());
+
+    QFont axisFont = font();
+    axisFont.setPointSize(9);
+    plot->xAxis->setTickLabelFont(axisFont);
+    plot->yAxis->setTickLabelFont(axisFont);
 }
 
-void MainWindow::clearPlots(bool all)
-{
-    QList<QCustomPlot*> plotsToClear;
+void MainWindow::addOriginalDataPoints(QCustomPlot* plot) {
+    auto* points = plot->addGraph();
+    QVector<double> px, py;
+    const auto& data = controller_->getTradeData();
+    px.reserve(data.size());
+    py.reserve(data.size());
 
+    for (const auto& td : data) {
+        px.push_back(td.timestamp);
+        py.push_back(td.close);
+    }
+
+    points->setData(px, py);
+    points->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
+    points->setPen(QPen(Qt::yellow, kDefaultGraphLineWidth));
+    points->setName("Исходные точки");
+}
+
+void MainWindow::updateUiState() const {
+    const bool hasData = !controller_->getTradeData().empty();
+    const auto enableWidgets = [hasData](const std::initializer_list<QWidget*>& widgets) {
+        for (auto* w : widgets) w->setEnabled(hasData);
+    };
+
+    // Интерполяция
+    enableWidgets({
+        ui->btn_plot_cubic_spline, ui->btn_plot_newton_polynomial,
+        ui->btn_get_interpolated_value, ui->dt_interpolation_input,
+        ui->spin_interpolation_points, ui->spin_newton_degree,
+        ui->lbl_interpolation_points_label, ui->lbl_newton_value,
+        ui->lbl_spline_value, ui->lbl_newton_degree_label
+    });
+
+    // Аппроксимация
+    enableWidgets({
+        ui->btn_plot_lsq_no_weights, ui->btn_plot_lsq_with_weights,
+        ui->btn_plot_four_graphs, ui->btn_get_approx_value,
+        ui->dt_approx_input, ui->spin_approx_points,
+        ui->spin_approx_degree, ui->spin_extrapolate_days,
+        ui->lbl_approx_value, ui->lbl_approx_points_label,
+        ui->lbl_approx_degree_label, ui->lbl_extrapolate_days_label
+    });
+
+    // Исследования
+    enableWidgets({
+        ui->btn_run_timing_study, ui->spin_stats_max_points,
+        ui->spin_stats_partitions, ui->table_timing_results
+    });
+}
+
+void MainWindow::clearPlots(bool all) {
+    QList<QCustomPlot*> plotsToClear;
     if (all) {
         plotsToClear = findChildren<QCustomPlot*>();
     } else {
         QWidget* currentTab = ui->tabWidget->currentWidget();
-
         if (currentTab == ui->aproximation) {
             plotsToClear << ui->plot_approximation;
         } else if (currentTab == ui->inerpolation) {
@@ -244,53 +169,53 @@ void MainWindow::clearPlots(bool all)
         }
     }
 
-    for (int i = 0; i < plotsToClear.size(); ++i) {
-        QCustomPlot* plot = plotsToClear[i];
+    for (auto* plot : plotsToClear) {
         plot->clearGraphs();
         plot->clearItems();
         plot->replot();
     }
 }
 
-
 void MainWindow::onLoadDataCsvClicked() {
-  clearPlots(true);
+    clearPlots(true);
 
-  const QString defaultDir = "../materials";
-  const QString fileName = QFileDialog::getOpenFileName(
-      this, tr("Открыть CSV файл с торговыми данными"), defaultDir,
-      tr("CSV файлы (*.csv);;Все файлы (*)"));
+    const QString defaultDir = "../materials";
+    const QString fileName = QFileDialog::getOpenFileName(
+        this, tr("Открыть CSV файл с торговыми данными"), defaultDir,
+        tr("CSV файлы (*.csv);;Все файлы (*)"));
 
-  if (fileName.isEmpty()) {
-    return;
-  }
+    if (fileName.isEmpty()) return;
 
-  if (controller_->loadTradingDataFromCsv(fileName)) {
-    if (const size_t count = controller_->getDataCount(); count == 0) {
-      QMessageBox::warning(this, tr("Ошибка"),
-                           tr("Файл загружен, но данные не найдены"));
-    } else {
-      const QFileInfo fileInfo(fileName);
-      QString shortFileName = fileInfo.fileName();
-      QString baseTitle = windowTitle().section(" — ", 0, 0);
-      setWindowTitle(
-          QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
-              .arg(baseTitle, shortFileName)
-              .arg(count));
-
-      ui->spin_interpolation_points->setMinimum(static_cast<int>(count));
-      ui->spin_approx_points->setMinimum(static_cast<int>(count));
-      ui->spin_stats_max_points->setMinimum(static_cast<int>(count));
+    if (!controller_->loadTradingDataFromCsv(fileName)) {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Ошибка при загрузке или парсинге файла"));
+        setWindowTitle(windowTitle().section(" — ", 0, 0) + " — Ошибка загрузки данных");
+        updateUiState();
+        return;
     }
-  } else {
-    QMessageBox::warning(this, tr("Ошибка"),
-                         tr("Ошибка при загрузке или парсинге файла"));
-    setWindowTitle(windowTitle().section(" — ", 0, 0) +
-                   " — Ошибка загрузки данных");
-  }
 
-  updateUiState();
-  setupDateTimeEditLimits();
+    const size_t count = controller_->getDataCount();
+    if (count == 0) {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Файл загружен, но данные не найдены"));
+        updateUiState();
+        return;
+    }
+
+    const QFileInfo fileInfo(fileName);
+    currentFileName_ = fileInfo.fileName();
+    const QString baseTitle = windowTitle().section(" — ", 0, 0);
+    setWindowTitle(QString("%1 — Данные из файла '%2' успешно загружены, точек: %3")
+                       .arg(baseTitle, currentFileName_).arg(count));
+
+    ui->spin_interpolation_points->setMinimum(static_cast<int>(count));
+    ui->spin_approx_points->setMinimum(static_cast<int>(count));
+    ui->spin_stats_max_points->setMinimum(static_cast<int>(count));
+
+    updateUiState();
+    setupDateTimeEditLimits();
+}
+
+QString MainWindow::getCurrentFileName() const {
+    return currentFileName_.isEmpty() ? "unknown.csv" : currentFileName_;
 }
 
 void MainWindow::plotBaseGraph() {
@@ -301,7 +226,6 @@ void MainWindow::plotBaseGraph() {
 
     QWidget* currentTab = ui->tabWidget->currentWidget();
     QCustomPlot* plot = nullptr;
-
     if (currentTab == ui->aproximation) {
         plot = ui->plot_approximation;
     } else if (currentTab == ui->inerpolation) {
@@ -312,7 +236,6 @@ void MainWindow::plotBaseGraph() {
         return;
     }
 
-    // Проверяем, не добавлен ли уже график "Исходные данные"
     const QString baseLabel = "Исходные данные";
     for (int i = 0; i < plot->graphCount(); ++i) {
         if (plot->graph(i)->name().contains(baseLabel)) {
@@ -321,7 +244,7 @@ void MainWindow::plotBaseGraph() {
         }
     }
 
-    if (plot->graphCount() >= 5) {
+    if (plot->graphCount() >= kMaxGraphsPerPlot) {
         QMessageBox::warning(this, "Лимит", "Не более 5 графиков на одном графике.");
         return;
     }
@@ -330,239 +253,167 @@ void MainWindow::plotBaseGraph() {
     QVector<double> x, y;
     x.reserve(data.size());
     y.reserve(data.size());
-
     for (const auto& point : data) {
-        x.append(point.timestamp);
-        y.append(point.close);
+        x.push_back(point.timestamp);
+        y.push_back(point.close);
     }
 
-    const int colorIndex = plot->graphCount() % kGraphColors.size();
-    QColor color = kGraphColors[colorIndex];
-
-    QCPGraph* graph = plot->addGraph();
-    graph->setData(x, y);
-    graph->setName(QString("● Исходные данные — %1").arg(getFileNameFromTitle()));
-    graph->setLineStyle(QCPGraph::lsLine);
-
-    static constexpr double kDefaultGraphLineWidth = 2.0;
-    graph->setPen(QPen(color, kDefaultGraphLineWidth));
-
-    graph->setScatterStyle(QCPScatterStyle::ssNone);
-
-    if (plot->graphCount() == 1) {
-        plot->rescaleAxes();
-    }
-
-    plot->replot();
+    const QString label = QString("● Исходные данные — %1").arg(getCurrentFileName());
+    plotGraph(plot, x, y, label);
 }
 
-
 void MainWindow::onPlotCubicSplineClicked() {
-  plotInterpolatedFunction(
-      "spline", 0,
-      [this](const QDateTime& dt) {
-        return controller_->getInterpolatedValue(dt);
-      },
-      ui->spin_interpolation_points->value());
+    plotInterpolatedFunction("spline", 0,
+                             [this](const QDateTime& dt) { return controller_->getInterpolatedValue(dt); },
+                             ui->spin_interpolation_points->value(), ui->plotWidget);
 }
 
 void MainWindow::onPlotNewtonPolynomialClicked() {
-  int degree = ui->spin_newton_degree->value();
-  const auto data = controller_->getTradeData();
+    const int degree = ui->spin_newton_degree->value();
+    const auto& data = controller_->getTradeData();
 
-  if (degree > 10) {
-    const QString warningMsg =
-        tr("Степень полинома %1 — это слишком много.\n\n"
-           "Полиномы степени выше 10:\n"
-           "• Сильно колеблются (явление Рунге)\n"
-           "• Дают неадекватные значения между точками\n"
-           "• Численно нестабильны\n\n"
-           "Построение не выполняется — результат будет фигня.\n"
-           "Снизь степень, братиш, и всё будет ок.")
-            .arg(degree);
+    if (degree > kMaxNewtonDegree) {
+        QMessageBox::information(this, tr("Не построено"),
+                                 tr("Степень полинома %1 — это слишком много.\n"
+                                    "Полиномы степени выше %2:\n"
+                                    "• Сильно колеблются (явление Рунге)\n"
+                                    "• Дают неадекватные значения\n"
+                                    "• Численно нестабильны\n\n"
+                                    "Снизьте степень до %2 или меньше.").arg(degree).arg(kMaxNewtonDegree));
+        return;
+    }
 
-    QMessageBox::information(this, tr("Не построено"), warningMsg);
-    return;
-  }
+    if (data.size() < static_cast<size_t>(degree + 1)) {
+        QMessageBox::warning(this, "Ошибка",
+                             QString("Для степени %1 нужно %2 точек, доступно: %3")
+                                 .arg(degree).arg(degree + 1).arg(data.size()));
+        return;
+    }
 
-  if (data.size() < degree + 1) {
-    QMessageBox::warning(this, "Ошибка",
-                         QString("Для степени %1 нужно %2 точек, доступно: %3")
-                             .arg(degree)
-                             .arg(degree + 1)
-                             .arg(data.size()));
-    return;
-  }
-
-  plotInterpolatedFunction(
-      "newton", degree,
-      [this, degree](const QDateTime& dt) {
-        return controller_->getInterpolatedValueNewton(dt, degree);
-      },
-      ui->spin_interpolation_points->value());
+    plotInterpolatedFunction("newton", degree,
+                             [this, degree](const QDateTime& dt) {
+                                 return controller_->getInterpolatedValueNewton(dt, degree);
+                             },
+                             ui->spin_interpolation_points->value(), ui->plotWidget);
 }
 
-QString MainWindow::createGraphLabel(const QString& type, int degree,
-                                     int pointCount) const {
-  // Извлекаем имя файла из заголовка: 'имя.csv'
-  QString fileName = "unknown.csv";
-  QString title = this->windowTitle();
-  auto start = title.indexOf("'");
-  auto end = title.indexOf("'", start + 1);
-  if (start != -1 && end != -1 && end > start) {
-    fileName = title.mid(start + 1, end - start - 1);
-  }
-
-  // Формируем префикс по типу
-  QString prefix;
-  if (type == "spline") {
-    prefix = QString("Spline (%1)").arg(pointCount);
-  } else if (type == "newton") {
-    prefix = QString("Newton (%1) n=%2").arg(pointCount).arg(degree);
-  } else {
-    prefix = QString("%1 (%2)").arg(type.toUpper()).arg(pointCount);
-  }
-
-  // Маркер ● и финальный вид
-  QChar bullet(0x25CF);  // ●
-  return QString("%1 %2 — %3").arg(bullet, prefix, fileName);
+QString MainWindow::createGraphLabel(const QString& type, int degree, int pointCount) const {
+    QString prefix;
+    if (type == "spline") {
+        prefix = QString("Spline (%1)").arg(pointCount);
+    } else if (type == "newton") {
+        prefix = QString("Newton (%1) n=%2").arg(pointCount).arg(degree);
+    } else {
+        prefix = QString("%1 (%2)").arg(type.toUpper()).arg(pointCount);
+    }
+    return QString("● %1 — %2").arg(prefix, getCurrentFileName());
 }
 
 void MainWindow::setupDateTimeEditLimits() const {
-    const auto data = controller_->getTradeData();
+    const auto& data = controller_->getTradeData();
     if (data.empty()) return;
 
-    const QDateTime minDate = QDateTime::fromSecsSinceEpoch(
-        static_cast<qint64>(data.front().timestamp));
-    const QDateTime maxDataDate = QDateTime::fromSecsSinceEpoch(
-        static_cast<qint64>(data.back().timestamp));
-
-    int extrapolateDays = ui->spin_extrapolate_days->value();
-
-    QDateTime maxAllowedDate = maxDataDate.addDays(extrapolateDays);
+    const QDateTime minDate = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.front().timestamp));
+    const QDateTime maxDataDate = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(data.back().timestamp));
+    const int extrapolateDays = ui->spin_extrapolate_days->value();
+    const QDateTime maxAllowedDate = maxDataDate.addDays(extrapolateDays);
 
     ui->dt_interpolation_input->setDateTimeRange(minDate, maxDataDate);
-    ui->dt_interpolation_input->setDateTime(minDate);
-
     ui->dt_approx_input->setDateTimeRange(minDate, maxAllowedDate);
+    ui->dt_interpolation_input->setDateTime(minDate);
     ui->dt_approx_input->setDateTime(minDate);
 }
 
-void MainWindow::onGetInterpolatedValueClicked() {  // NOLINT
-  const QDateTime dateTime = ui->dt_interpolation_input->dateTime();
-  const int degree = ui->spin_newton_degree->value();
+void MainWindow::onGetInterpolatedValueClicked() {
+    const QDateTime dateTime = ui->dt_interpolation_input->dateTime();
+    const int degree = ui->spin_newton_degree->value();
 
-  // === Сплайн ===
-  const double splineValue = controller_->getInterpolatedValue(dateTime);
-  const QString splineText =
-      std::isnan(splineValue) ? "—" : QString::number(splineValue, 'f', 6);
-  ui->lbl_spline_value->setText("Значение сплайна: " + splineText);
+    const double splineValue = controller_->getInterpolatedValue(dateTime);
+    const QString splineText = std::isnan(splineValue) ? "—" : QString::number(splineValue, 'f', 6);
+    ui->lbl_spline_value->setText("Значение сплайна: " + splineText);
 
-  // === Полином Ньютона ===
-  const double newValue =
-      controller_->getInterpolatedValueNewton(dateTime, degree);
-  const QString newtonText =
-      std::isnan(newValue) ? "—" : QString::number(newValue, 'f', 6);
-  ui->lbl_newton_value->setText("Значение полинома: " + newtonText);
+    const double newValue = controller_->getInterpolatedValueNewton(dateTime, degree);
+    const QString newtonText = std::isnan(newValue) ? "—" : QString::number(newValue, 'f', 6);
+    ui->lbl_newton_value->setText("Значение полинома: " + newtonText);
 }
 
-void MainWindow::toggleDataPoints()
-{
+void MainWindow::toggleDataPoints() {
     showPoints_ = !showPoints_;
-
-    const QList<QCustomPlot*> plotsToModify = findChildren<QCustomPlot*>();
-
-    for (QCustomPlot* plot : plotsToModify) {
+    for (auto* plot : findChildren<QCustomPlot*>()) {
         for (int i = 0; i < plot->graphCount(); ++i) {
-            QCPGraph* g = plot->graph(i);
-            double lineWidth = g->pen().widthF();
-            double pointSize = lineWidth * 2.0;
-
-            g->setScatterStyle(showPoints_ ? QCPScatterStyle(QCPScatterStyle::ssCircle,
-                                                             Qt::black,
-                                                             Qt::black,
-                                                             pointSize)
-                                           : QCPScatterStyle::ssNone);
+            auto* g = plot->graph(i);
+            const double pointSize = g->pen().widthF() * 2.0;
+            g->setScatterStyle(showPoints_
+                                   ? QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::black, pointSize)
+                                   : QCPScatterStyle::ssNone);
         }
         plot->replot();
     }
 }
 
 void MainWindow::plotInterpolatedFunction(
-    const QString& type, const int degree,
+    const QString& type, int degree,
     const std::function<double(const QDateTime&)>& valueFunc,
-    const int pointCount) {
-  if (controller_->getDataCount() == 0) {
-    QMessageBox::warning(this, "Ошибка", "Нет данных. Загрузите CSV.");
-    return;
-  }
+    int pointCount, QCustomPlot* plot) {
 
-  const auto data = controller_->getTradeData();
-  if (data.size() < 2) {
-    QMessageBox::warning(this, "Ошибка", "Минимум 2 точки.");
-    return;
-  }
+    if (controller_->getDataCount() < 2) {
+        QMessageBox::warning(this, "Ошибка", "Минимум 2 точки.");
+        return;
+    }
 
-  const double xStart = data.front().timestamp;
-  const double xEnd = data.back().timestamp;
+    const auto& data = controller_->getTradeData();
+    const double xStart = data.front().timestamp;
+    const double xEnd = data.back().timestamp;
+    const auto x = generateX(xStart, xEnd, pointCount);
+    QVector<double> y;
+    y.reserve(x.size());
 
-  QVector<double> x = generateX(xStart, xEnd, pointCount);
-  QVector<double> y;
-  y.reserve(x.size());
+    for (double xi : x) {
+        const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi));
+        y.push_back(valueFunc(dt));
+    }
 
-  for (double xi : x) {
-    QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi));
-    y.append(valueFunc(dt));
-  }
-
-  const QString label = createGraphLabel(type, degree, pointCount);
-  plotInterpolatedGraph(x, y, label);
+    const QString label = createGraphLabel(type, degree, pointCount);
+    plotGraph(plot, x, y, label);
 }
 
-void MainWindow::plotInterpolatedGraph(const QVector<double>& x,
-                                       const QVector<double>& y,
-                                       const QString& label) {
-  if (ui->plotWidget->graphCount() >= 5) {
-    QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
-    return;
-  }
+void MainWindow::plotGraph(QCustomPlot* plot, const QVector<double>& x,
+                           const QVector<double>& y, const QString& label,
+                           bool allowRescale) {
+    if (plot->graphCount() >= kMaxGraphsPerPlot) {
+        QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
+        return;
+    }
 
-  QCPGraph* graph = ui->plotWidget->addGraph();
-  graph->setData(x, y);
-  graph->setName(label);
+    auto* graph = plot->addGraph();
+    graph->setData(x, y);
+    graph->setName(label);
+    const int colorIndex = plot->graphCount() - 1;
+    const QColor color = kGraphColors[colorIndex % kGraphColors.size()];
+    graph->setPen(QPen(color, kDefaultGraphLineWidth));
+    graph->setScatterStyle(QCPScatterStyle::ssNone);
 
-  const int index = ui->plotWidget->graphCount() - 1;
-  QColor color = kGraphColors[index % kGraphColors.size()];
-  graph->setPen(QPen(color, kDefaultGraphLineWidth));
-
-  graph->setScatterStyle(QCPScatterStyle::ssNone);
-
-  ui->plotWidget->rescaleAxes();
-  ui->plotWidget->replot();
+    if (allowRescale) {
+        plot->rescaleAxes();
+    }
+    plot->replot();
 }
 
-QVector<double> MainWindow::generateX(const double xStart, const double xEnd,
-                                      const int numPoints) {
-  QVector<double> x;
-  x.reserve(numPoints);
-  if (numPoints == 1) {
-    x.append(xStart);
-  } else {
+QVector<double> MainWindow::generateX(double xStart, double xEnd, int numPoints) {
+    if (numPoints <= 0) return {};
+    if (numPoints == 1) return {xStart};
+
+    QVector<double> x;
+    x.reserve(numPoints);
     const double step = (xEnd - xStart) / (numPoints - 1);
     for (int i = 0; i < numPoints; ++i) {
-      x.append(xStart + i * step);
+        x.push_back(xStart + i * step);
     }
-  }
-  return x;
+    return x;
 }
 
-void MainWindow::onPlotLsqNoWeightsClicked() {
-  plotApproximation(false);  // без весов
-}
-
-void MainWindow::onPlotLsqWithWeightsClicked() {
-  plotApproximation(true);  // с весами
-}
+void MainWindow::onPlotLsqNoWeightsClicked() { plotApproximation(false); }
+void MainWindow::onPlotLsqWithWeightsClicked() { plotApproximation(true); }
 
 void MainWindow::plotApproximation(bool use_weights) {
     const int degree = ui->spin_approx_degree->value();
@@ -576,362 +427,218 @@ void MainWindow::plotApproximation(bool use_weights) {
         last_approx_degree_ = degree;
     }
 
-    if (ui->plot_approximation->graphCount() >= 5) {
-        QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
-        return;
-    }
-
     controller_->buildLeastSquaresModel(degree, use_weights);
-
-    const auto curve = controller_->generateApproximationCurve(
-        degree, use_weights, numPoints, days);
-
+    const auto curve = controller_->generateApproximationCurve(degree, use_weights, numPoints, days);
     if (curve.empty()) {
         QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
         return;
     }
 
     QVector<double> x, y;
+    x.reserve(curve.size());
+    y.reserve(curve.size());
     for (const auto& [xi, yi] : curve) {
-        x.append(xi);
-        y.append(yi);
+        x.push_back(xi);
+        y.push_back(yi);
     }
 
-    QString method = use_weights ? "LSQ (с весами)" : "LSQ (без весов)";
-    QString label = QString("● %1, степень=%2, M=%3 — %4")
-                        .arg(method)
-                        .arg(degree)
-                        .arg(days)
-                        .arg(getFileNameFromTitle());
+    const QString method = use_weights ? "LSQ (с весами)" : "LSQ (без весов)";
+    const QString label = QString("● %1, степень=%2, M=%3 — %4")
+                              .arg(method).arg(degree).arg(days).arg(getCurrentFileName());
 
-    QCPGraph* graph = ui->plot_approximation->addGraph();
-    graph->setData(x, y);
-    graph->setName(label);
+    plotGraph(ui->plot_approximation, x, y, label);
 
-    QColor color = kGraphColors[(ui->plot_approximation->graphCount() - 1) % kGraphColors.size()];
-    graph->setPen(QPen(color, kDefaultGraphLineWidth));
-
-    // Исходные точки — жирнее, другим цветом
     if (showApproxPoints_) {
-        QCPGraph* points = ui->plot_approximation->addGraph();
-        QVector<double> px, py;
-        const auto& data = controller_->getTradeData();
-        for (const auto& td : data) {
-            px.append(td.timestamp);
-            py.append(td.close);
-        }
-        points->setData(px, py);
-        points->setScatterStyle(QCPScatterStyle::ssNone);
-        graph->setPen(QPen(color, kDefaultGraphLineWidth));
-        points->setName("Исходные точки");
+        addOriginalDataPoints(ui->plot_approximation);
     }
-
-    ui->plot_approximation->rescaleAxes();
-    ui->plot_approximation->replot();
 }
 
 void MainWindow::onGetApproxValueClicked() {
-  QDateTime dt = ui->dt_approx_input->dateTime();
-  int degree = ui->spin_approx_degree->value();
+    const QDateTime dt = ui->dt_approx_input->dateTime();
+    const int degree = ui->spin_approx_degree->value();
 
-  // Без весов
-  double value_no_weight = controller_->getApproximatedValue(dt, degree, false);
-  QString val_str_no = std::isnan(value_no_weight)
-                           ? "—"
-                           : QString::number(value_no_weight, 'f', 6);
+    const double value_no_weight = controller_->getApproximatedValue(dt, degree, false);
+    const QString val_str_no = std::isnan(value_no_weight) ? "—" : QString::number(value_no_weight, 'f', 6);
 
-  // С весами
-  double value_with_weight =
-      controller_->getApproximatedValue(dt, degree, true);
-  QString val_str_w = std::isnan(value_with_weight)
-                          ? "—"
-                          : QString::number(value_with_weight, 'f', 6);
+    const double value_with_weight = controller_->getApproximatedValue(dt, degree, true);
+    const QString val_str_w = std::isnan(value_with_weight) ? "—" : QString::number(value_with_weight, 'f', 6);
 
-  ui->lbl_approx_value->setText(
-      QString("Без весов: %1; С весами: %2").arg(val_str_no, val_str_w));
-}
-
-QString MainWindow::getFileNameFromTitle() const {
-  QString fileName = "unknown.csv";
-  const QString title = this->windowTitle();
-
-  const auto start = title.indexOf('\'');
-  const auto end = title.indexOf('\'', start + 1);
-
-  if (start != -1 && end != -1 && end > start) {
-    fileName = title.mid(start + 1, end - start - 1);
-  }
-
-  return fileName;
+    ui->lbl_approx_value->setText(QString("Без весов: %1; С весами: %2").arg(val_str_no, val_str_w));
 }
 
 void MainWindow::onPlotFourGraphsClicked() {
-    if (ui->plot_approximation->graphCount()+4 > 5) {
+    QCustomPlot* plot = ui->plot_approximation;
+
+    if (plot->graphCount() + 4 > kMaxGraphsPerPlot) {
         QMessageBox::warning(this, "Лимит", "Не более 5 графиков.");
         return;
     }
 
+    const int numPoints = ui->spin_approx_points->value();
+    const int days = ui->spin_extrapolate_days->value();
+    last_extrapolate_days_ = days;
 
-  const int numPoints = ui->spin_approx_points->value();
-  const int days = ui->spin_extrapolate_days->value();
+    struct PlotConfig {
+        int degree;
+        bool use_weights;
+        QString label_suffix;
+    };
 
-  last_extrapolate_days_ = days;
+    const QVector<PlotConfig> configs = {
+        {1, false, "n=1, без весов"},
+        {2, false, "n=2, без весов"},
+        {1, true,  "n=1, с весами"},
+        {2, true,  "n=2, с весами"}
+    };
 
-  struct PlotConfig {
-    int degree;
-    bool use_weights;
-    QString label_suffix;
-    QColor color;
-  };
+    for (const auto& config : configs) {
+        controller_->buildLeastSquaresModel(config.degree, config.use_weights);
+        const auto curve = controller_->generateApproximationCurve(
+            config.degree, config.use_weights, numPoints, days);
+        if (curve.empty()) continue;
 
-  static QVector<PlotConfig> configs = {
-      {1, false, "n=1, без весов", kGraphColors[0]},
-      {2, false, "n=2, без весов", kGraphColors[1]},
-      {1, true,  "n=1, с весами",  kGraphColors[2]},
-      {2, true,  "n=2, с весами",  kGraphColors[3]}
-  };
-  for (const auto& config : configs) {
-    controller_->buildLeastSquaresModel(config.degree, config.use_weights);
+        QVector<double> x, y;
+        x.reserve(curve.size());
+        y.reserve(curve.size());
+        for (const auto& [xi, yi] : curve) {
+            x.push_back(xi);
+            y.push_back(yi);
+        }
 
-    const auto curve = controller_->generateApproximationCurve(
-        config.degree, config.use_weights, numPoints, days);
-
-    if (curve.empty()) continue;
-
-    QVector<double> x, y;
-    for (const auto& [xi, yi] : curve) {
-      x.append(xi);
-      y.append(yi);
+        const QString label = QString("● %1 — %2")
+                                  .arg(config.label_suffix, getCurrentFileName());
+        plotGraph(plot, x, y, label, false);
     }
 
-    QCPGraph* graph = ui->plot_approximation->addGraph();
-    graph->setData(x, y);
-
-    QString label = QString("● %1 — %2")
-                        .arg(config.label_suffix)
-                        .arg(getFileNameFromTitle());
-
-    graph->setName(label);
-    graph->setPen(QPen(config.color, kDefaultGraphLineWidth));
-    graph->setScatterStyle(QCPScatterStyle::ssNone);
-  }
-
-  if (showApproxPoints_) {
-    QCPGraph* points = ui->plot_approximation->addGraph();
-    QVector<double> px, py;
-    const auto& data = controller_->getTradeData();
-    for (const auto& td : data) {
-      px.append(td.timestamp);
-      py.append(td.close);
+    if (showApproxPoints_) {
+        addOriginalDataPoints(plot);
     }
-    points->setData(px, py);
-    points->setScatterStyle(
-        QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::black, Qt::yellow, 8));
-    points->setPen(QPen(Qt::yellow, kDefaultGraphLineWidth));
-    points->setName("Исходные точки");
-  }
 
-  ui->plot_approximation->rescaleAxes();
-  ui->plot_approximation->replot();
+    plot->rescaleAxes();
+    plot->replot();
 }
 
 void MainWindow::onRunTimingStudyClicked() {
-    const int h = ui->spin_stats_partitions->value();      // число разбиений
-    const int k_max = ui->spin_stats_max_points->value();  // макс. точек
-    const int newton_degree = 5;  // фиксированная степень для теста
+    const int h = ui->spin_stats_partitions->value();
+    const int k_max = ui->spin_stats_max_points->value();
+    const int newton_degree = kDefaultNewtonDegreeForTiming;
 
-    const auto data = controller_->getTradeData();
+    const auto& data = controller_->getTradeData();
     if (data.size() < 2) {
         QMessageBox::warning(this, "Ошибка", "Нужно хотя бы 2 точки.");
         return;
     }
 
     const int N = static_cast<int>(data.size());
-
-    // Валидация входных данных
-    if (k_max < N) {
+    if (k_max < N || h < 2) {
         QMessageBox::warning(this, "Ошибка",
-                             QString("Макс. число точек (%1) должно быть >= числа точек в файле (%2)")
-                                 .arg(k_max).arg(N));
-        return;
-    }
-    if (h < 2) {
-        QMessageBox::warning(this, "Ошибка", "Число разбиений h >= 2");
+                             QString("k_max (%1) >= N (%2) и h (%3) >= 2").arg(k_max).arg(N).arg(h));
         return;
     }
 
-    // === ИНДИКАТОР ПРОГРЕССА ===
     QProgressDialog progress("Выполнение измерений...", "Отмена", 0, h, this);
     progress.setWindowTitle("Исследование временных характеристик");
     progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(0); // Показываем сразу
+    progress.setMinimumDuration(0);
     progress.show();
 
     const double xStart = data.front().timestamp;
     const double xEnd = data.back().timestamp;
 
-    // Очистка предыдущих результатов
     ui->plot_timing->clearGraphs();
     ui->plot_timing->clearItems();
     ui->table_timing_results->setRowCount(0);
-
-    // Настройка таблицы
     ui->table_timing_results->setColumnCount(3);
-    ui->table_timing_results->setHorizontalHeaderLabels(
-        {"k", "Spline (мс)", "Newton (мс)"});
+    ui->table_timing_results->setHorizontalHeaderLabels({"k", "Spline (мс)", "Newton (мс)"});
 
     std::vector<int> k_values(h);
     std::vector<double> times_spline(h), times_newton(h);
 
-    const int measurements = 10;  // 10 измерений для усреднения
+    auto measureTime = [&](const std::function<void()>& func) -> double {
+        double total = 0.0;
+        for (int m = 0; m < kDefaultTimingMeasurements; ++m) {
+            const auto start = std::chrono::high_resolution_clock::now();
+            func();
+            const auto end = std::chrono::high_resolution_clock::now();
+            total += std::chrono::duration<double, std::milli>(end - start).count();
+        }
+        return total / kDefaultTimingMeasurements;
+    };
 
     for (int i = 0; i < h; ++i) {
-        // Обновляем прогресс
-        progress.setValue(i);
-        progress.setLabelText(QString("Измерение %1 из %2\nk = %3")
-                                  .arg(i + 1).arg(h)
-                                  .arg(N + (k_max - N) * i / (h - 1)));
-
-        // Проверяем отмену
         if (progress.wasCanceled()) {
             QMessageBox::information(this, "Отменено", "Исследование прервано пользователем.");
             return;
         }
 
-        // Правильное распределение точек от N до k_max
         const int k_i = N + (k_max - N) * i / (h - 1);
         k_values[i] = k_i;
 
-        // Генерируем точки для интерполяции
-        QVector<double> x = generateX(xStart, xEnd, k_i);
+        progress.setLabelText(QString("Измерение %1/%2, k=%3 — сплайн...").arg(i+1).arg(h).arg(k_i));
+        QApplication::processEvents();
+
+        const auto x = generateX(xStart, xEnd, k_i);
         std::vector<QDateTime> dt_vec;
-        dt_vec.reserve(k_i);
+        dt_vec.reserve(x.size());
         for (double xi : x) {
-            dt_vec.emplace_back(
-                QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi)));
+            dt_vec.emplace_back(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(xi)));
         }
 
-        // === СООБЩЕНИЕ О ТЕКУЩЕМ ИЗМЕРЕНИИ ===
-        progress.setLabelText(QString("Измерение %1 из %2\n"
-                                      "k = %3 точек\n"
-                                      "Выполняются замеры сплайна...")
-                                  .arg(i + 1).arg(h).arg(k_i));
-
-        // === Измерение времени для сплайна ===
-        double total_spline_time = 0.0;
-        for (int m = 0; m < measurements; ++m) {
-            progress.setLabelText(QString("Измерение %1 из %2\n"
-                                          "k = %3 точек\n"
-                                          "Сплайн: измерение %4 из 10")
-                                      .arg(i + 1).arg(h).arg(k_i).arg(m + 1));
-
-            QApplication::processEvents(); // Обновляем UI
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            for (const QDateTime& dt : dt_vec) {
-                controller_->getInterpolatedValue(dt);
+        double total_spline_time = measureTime([&]() {
+            double sum = 0.0;
+            for (const auto& dt : dt_vec) {
+                sum += controller_->getInterpolatedValue(dt);
             }
+            if (std::isnan(sum)) { }
+        });
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration_ms =
-                std::chrono::duration<double, std::milli>(end - start).count();
-            total_spline_time += duration_ms;
-        }
-        times_spline[i] = total_spline_time / measurements;
+        times_spline[i] = total_spline_time;
 
-        // === Измерение времени для Ньютона ===
-        progress.setLabelText(QString("Измерение %1 из %2\n"
-                                      "k = %3 точек\n"
-                                      "Выполняются замеры Ньютона...")
-                                  .arg(i + 1).arg(h).arg(k_i));
+        progress.setLabelText(QString("Измерение %1/%2, k=%3 — Ньютон...").arg(i+1).arg(h).arg(k_i));
+        QApplication::processEvents();
 
-        double total_newton_time = 0.0;
-        for (int m = 0; m < measurements; ++m) {
-            progress.setLabelText(QString("Измерение %1 из %2\n"
-                                          "k = %3 точек\n"
-                                          "Ньютон: измерение %4 из 10")
-                                      .arg(i + 1).arg(h).arg(k_i).arg(m + 1));
-
-            QApplication::processEvents(); // Обновляем UI
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            for (const QDateTime& dt : dt_vec) {
-                controller_->getInterpolatedValueNewton(dt, newton_degree);
+        double total_newton_time = measureTime([&]() {
+            double sum = 0.0;
+            for (const auto& dt : dt_vec) {
+                sum += controller_->getInterpolatedValueNewton(dt, newton_degree);
             }
+            if (std::isnan(sum)) {}
+        });
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration_ms =
-                std::chrono::duration<double, std::milli>(end - start).count();
-            total_newton_time += duration_ms;
-        }
-        times_newton[i] = total_newton_time / measurements;
+        times_newton[i] = total_newton_time;
 
-        // Обновление таблицы
-        int row = ui->table_timing_results->rowCount();
+        const int row = ui->table_timing_results->rowCount();
         ui->table_timing_results->insertRow(row);
-        ui->table_timing_results->setItem(
-            row, 0, new QTableWidgetItem(QString::number(k_i)));
-        ui->table_timing_results->setItem(
-            row, 1, new QTableWidgetItem(QString::number(times_spline[i], 'f', 3)));
-        ui->table_timing_results->setItem(
-            row, 2, new QTableWidgetItem(QString::number(times_newton[i], 'f', 3)));
+        ui->table_timing_results->setItem(row, 0, new QTableWidgetItem(QString::number(k_i)));
+        ui->table_timing_results->setItem(row, 1, new QTableWidgetItem(QString::number(times_spline[i], 'f', 3)));
+        ui->table_timing_results->setItem(row, 2, new QTableWidgetItem(QString::number(times_newton[i], 'f', 3)));
 
-        // Принудительное обновление интерфейса
         QApplication::processEvents();
     }
 
-    // Завершаем прогресс
     progress.setValue(h);
-
-    // === Построение графиков ===
     progress.setLabelText("Построение графиков...");
     QApplication::processEvents();
 
-    QVector<double> k_plot(k_values.begin(), k_values.end());
-    QVector<double> t_spline(times_spline.begin(), times_spline.end());
-    QVector<double> t_newton(times_newton.begin(), times_newton.end());
+    const QVector<double> k_plot(k_values.begin(), k_values.end());
+    const QVector<double> t_spline(times_spline.begin(), times_spline.end());
+    const QVector<double> t_newton(times_newton.begin(), times_newton.end());
 
-    // График сплайнов
-    QCPGraph* graph_spline = ui->plot_timing->addGraph();
-    graph_spline->setData(k_plot, t_spline);
-    graph_spline->setName("Кубический сплайн");
-    graph_spline->setPen(QPen(kGraphColors[0], kDefaultGraphLineWidth));
-    graph_spline->setScatterStyle(QCPScatterStyle::ssNone);
-    // График Ньютона
-    QCPGraph* graph_newton = ui->plot_timing->addGraph();
-    graph_newton->setData(k_plot, t_newton);
-    graph_newton->setName("Полином Ньютона (n=5)");
-    graph_newton->setPen(QPen(kGraphColors[1], kDefaultGraphLineWidth));
-    graph_newton->setScatterStyle(QCPScatterStyle::ssNone);
+    plotGraph(ui->plot_timing, k_plot, t_spline, "Кубический сплайн", false);
+    plotGraph(ui->plot_timing, k_plot, t_newton, "Полином Ньютона (n=5)", false);
 
-    // Настройка осей
     ui->plot_timing->xAxis->setLabel("Число точек k");
     ui->plot_timing->yAxis->setLabel("Среднее время расчета (мс)");
-
-    // Настройка легенды
     ui->plot_timing->legend->setVisible(true);
     ui->plot_timing->legend->setBrush(QColor(255, 255, 255, 200));
-
-    // Автоматическое масштабирование
     ui->plot_timing->rescaleAxes();
     ui->plot_timing->replot();
 
-    // === ФИНАЛЬНОЕ СООБЩЕНИЕ ===
-    QString results = QString("Исследование завершено!\n\n"
-                              "Параметры исследования:\n"
-                              "• Точек в файле (N): %1\n"
-                              "• Максимальное k: %2\n"
-                              "• Разбиений h: %3\n"
-                              "• Измерений на точку: 10\n\n"
-                              "Графики построены успешно!")
-                          .arg(N)
-                          .arg(k_max)
-                          .arg(h)
-                          .arg(std::accumulate(times_spline.begin(), times_spline.end(), 0.0) / h, 0, 'f', 3)
-                          .arg(std::accumulate(times_newton.begin(), times_newton.end(), 0.0) / h, 0, 'f', 3);
-
-    QMessageBox::information(this, "Исследование завершено", results);
+    QMessageBox::information(this, "Исследование завершено",
+                             QString("Исследование завершено!\n\n"
+                                     "• Точек в файле (N): %1\n"
+                                     "• Максимальное k: %2\n"
+                                     "• Разбиений h: %3\n"
+                                     "• Измерений на точку: %4")
+                                 .arg(N).arg(k_max).arg(h).arg(kDefaultTimingMeasurements));
 }
-
