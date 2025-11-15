@@ -141,6 +141,8 @@ TEST_F(CubicSplineTest, Interpolate_InvalidInput) {
   s21::CubicSplineInterpolator spline(points_quadratic);
 
   EXPECT_THROW(static_cast<void>(spline.interpolate(NAN)), std::runtime_error);
-  EXPECT_THROW(static_cast<void>(spline.interpolate(INFINITY)), std::runtime_error);
-  EXPECT_THROW(static_cast<void>(spline.interpolate(-INFINITY)), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(INFINITY)),
+               std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(-INFINITY)),
+               std::runtime_error);
 }
