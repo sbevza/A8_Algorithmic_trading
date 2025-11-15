@@ -5,8 +5,8 @@
 #include <cmath>
 #include <vector>
 
-#include "models/cubic_spline_interpolator.h"
-#include "models/trade_data.h"
+#include "../algo_trading/models/cubic_spline_interpolator.h"
+#include "../algo_trading/models/trade_data.h"
 
 bool almost_equal(double a, double b, double eps = 1e-9) {
   return std::abs(a - b) < eps;
@@ -39,19 +39,19 @@ TEST_F(CubicSplineTest, Constructor_MinimumPoints) {
 // Тест: меньше двух точек — ошибка
 TEST_F(CubicSplineTest, Constructor_InsufficientPoints) {
   std::vector<s21::TradeData> one_point = {{0.0, 0.0}};
-  EXPECT_THROW(
-      { s21::CubicSplineInterpolator spline(one_point); }, std::runtime_error);
+  EXPECT_THROW({ s21::CubicSplineInterpolator spline(one_point); },
+               std::runtime_error);
 }
 
 // Тест: x не строго возрастают — ошибка
 TEST_F(CubicSplineTest, Constructor_NonIncreasingX) {
   std::vector<s21::TradeData> bad_x = {{0.0, 0.0}, {1.0, 1.0}, {1.0, 2.0}};
-  EXPECT_THROW(
-      { s21::CubicSplineInterpolator spline(bad_x); }, std::runtime_error);
+  EXPECT_THROW({ s21::CubicSplineInterpolator spline(bad_x); },
+               std::runtime_error);
 
   std::vector<s21::TradeData> decreasing = {{2.0, 0.0}, {1.0, 1.0}};
-  EXPECT_THROW(
-      { s21::CubicSplineInterpolator spline(decreasing); }, std::runtime_error);
+  EXPECT_THROW({ s21::CubicSplineInterpolator spline(decreasing); },
+               std::runtime_error);
 }
 
 // Тест: линейная функция — сплайн должен быть линейным
@@ -115,8 +115,8 @@ TEST_F(CubicSplineTest, DebugInterpolation) {
 TEST_F(CubicSplineTest, Interpolate_OutOfRange) {
   s21::CubicSplineInterpolator spline(points_quadratic);
 
-  EXPECT_THROW(spline.interpolate(-0.1), std::runtime_error);
-  EXPECT_THROW(spline.interpolate(3.1), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(-0.1)), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(3.1)), std::runtime_error);
 }
 
 // Тест: интерполяция на границе (в последней точке)
@@ -140,7 +140,7 @@ TEST_F(CubicSplineTest, TwoPoints_Linear) {
 TEST_F(CubicSplineTest, Interpolate_InvalidInput) {
   s21::CubicSplineInterpolator spline(points_quadratic);
 
-  EXPECT_THROW(spline.interpolate(NAN), std::runtime_error);
-  EXPECT_THROW(spline.interpolate(INFINITY), std::runtime_error);
-  EXPECT_THROW(spline.interpolate(-INFINITY), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(NAN)), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(INFINITY)), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(spline.interpolate(-INFINITY)), std::runtime_error);
 }

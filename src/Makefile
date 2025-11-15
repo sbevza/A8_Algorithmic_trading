@@ -1,9 +1,9 @@
 .PHONY: all install open uninstall dist test gcov clean leak div
 
-GCC = gcc -Wall -Werror -Wextra -std=c++17 
+GCC = gcc -Wall -Werror -Wextra -std=c++20
 
 TEST_FLAGS = -lgtest -lgtest_main -lstdc++ -lm -g 
-TEST_FILES = Tests/algo_trading_test.cc Tests/algo_trading_solver_test.cc Tests/algo_trading_generator_test.cc Tests/cave_test.cc algo_trading/models/algo_trading.cc algo_trading/models/algo_trading_solver.cc algo_trading/models/algo_trading_generator.cc
+TEST_FILES = Tests/spline_test.cc Tests/newton_test.cc Tests/least_squares_approximator_test.cc algo_trading/models/cubic_spline_interpolator.cc algo_trading/models/newton_interpolator.cc algo_trading/models/least_squares_approximator.cc algo_trading/models/trade_data.cc
 TEST = $(GCC) $(TEST_FILES) $(TEST_FLAGS) -o s21_test
 
 
@@ -41,7 +41,7 @@ uninstall:
 
 dist:
 	mkdir algo_trading_dist/
-	cp -a algo_trading Exemples Tests Makefile readme.txt  algo_trading_dist
+	cp -a algo_trading Tests Makefile Readme.txt  algo_trading_dist
 	tar cvzf algo_trading.tgz algo_trading_dist/
 	rm -rf algo_trading_dist/
 
@@ -57,11 +57,9 @@ gcov:
 	rm -f *.gcno *.gcda *.info report.out *.gcov
 	open ./report/index.html
 
-
-
 clean: 
 	find . \( -name '*.o' -o -name '*.a' -o -name '*.gcno' -o -name '*.gcda' -o -name '*.info' \) -exec rm -rf {} \;
-	rm -rf report report_out report.out.dSYM s21_test.dSYM s21_test algo_trading.tgz view algo_trading.pro.*
+	rm -rf report report_out report.out.dSYM s21_test.dSYM s21_test algo_trading.tgz view algo_trading.pro.* algo_trading_dist
 	cd algo_trading/ && make clean && rm -rf Makefile .qmake.stash algo_trading.app
 
 clang:
@@ -72,6 +70,4 @@ leak:
 	$(LEAK)
 
 dvi:
-	open readme.txt
-
-
+	open Readme.txt

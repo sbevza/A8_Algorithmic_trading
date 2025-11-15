@@ -8,8 +8,7 @@ namespace s21 {
 
 class NewtonInterpolator {
  public:
-  explicit NewtonInterpolator(const std::vector<TradeData>& points,
-                              int degree);
+  explicit NewtonInterpolator(const std::vector<TradeData>& points, int degree);
   [[nodiscard]] double interpolate(double x_val) const;
   [[nodiscard]] int degree() const { return degree_; }
 

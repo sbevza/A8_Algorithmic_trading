@@ -148,7 +148,7 @@ void AlgoTradingController::buildLeastSquaresModel(int degree,
     weights.reserve(trade_data_.size());
 
     if (use_weights) {
-      for (const auto& td : trade_data_) {
+      for (const auto &td : trade_data_) {
         weights.push_back(td.weight);
       }
     } else {
@@ -167,13 +167,13 @@ void AlgoTradingController::buildLeastSquaresModel(int degree,
   }
 }
 
-double AlgoTradingController::getApproximatedValue(const QDateTime& dateTime,
+double AlgoTradingController::getApproximatedValue(const QDateTime &dateTime,
                                                    int degree,
                                                    bool use_weights) {
   if (!lsq_approximator_ || current_lsq_degree_ != degree ||
       current_lsq_use_weights_ != use_weights) {
     buildLeastSquaresModel(degree, use_weights);
-      }
+  }
 
   if (!lsq_approximator_) {
     return std::numeric_limits<double>::quiet_NaN();
@@ -184,8 +184,9 @@ double AlgoTradingController::getApproximatedValue(const QDateTime& dateTime,
 }
 
 std::vector<std::pair<double, double>>
-AlgoTradingController::generateApproximationCurve(
-    int degree, bool use_weights, int numPoints, int extrapolateDays) const {
+AlgoTradingController::generateApproximationCurve(int degree, bool use_weights,
+                                                  int numPoints,
+                                                  int extrapolateDays) const {
   if (!lsq_approximator_ || trade_data_.empty()) {
     return {};
   }

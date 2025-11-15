@@ -6,12 +6,12 @@
 namespace s21 {
 
 struct TradeData {
-    double timestamp;
-    double close;
-    double weight;
+  double timestamp;
+  double close;
+  double weight;
 
-    TradeData() : timestamp(0.0), close(0.0), weight(1.0) {}
-    TradeData(double ts, double c, double w = 1.0);
+  TradeData() : timestamp(0.0), close(0.0), weight(1.0) {}
+  TradeData(double ts, double c, double w = 1.0);
 };
 
 }  // namespace s21

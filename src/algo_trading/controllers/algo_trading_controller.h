@@ -8,8 +8,8 @@
 
 #include "models/csv_parser.h"
 #include "models/cubic_spline_interpolator.h"
-#include "models/newton_interpolator.h"
 #include "models/least_squares_approximator.h"
+#include "models/newton_interpolator.h"
 
 namespace s21 {
 
@@ -25,15 +25,17 @@ class AlgoTradingController : public QObject {
   [[nodiscard]] QString getLastError() const;
 
   void buildSplineFromLoadedData();
-  [[nodiscard]] double getInterpolatedValue(const QDateTime &dateTime) const;
+  [[nodiscard]] double getInterpolatedValue(const QDateTime& dateTime) const;
 
   void buildNewtonPolynomial(int degree);
   double getInterpolatedValueNewton(const QDateTime& dateTime, int degree);
 
   void buildLeastSquaresModel(int degree, bool use_weights);
-  [[nodiscard]] double getApproximatedValue(const QDateTime& dateTime, int degree, bool use_weights);
-  [[nodiscard]] std::vector<std::pair<double, double>> generateApproximationCurve(
-      int degree, bool use_weights, int numPoints, int extrapolateDays) const;
+  [[nodiscard]] double getApproximatedValue(const QDateTime& dateTime,
+                                            int degree, bool use_weights);
+  [[nodiscard]] std::vector<std::pair<double, double>>
+  generateApproximationCurve(int degree, bool use_weights, int numPoints,
+                             int extrapolateDays) const;
 
  private:
   std::vector<TradeData> trade_data_;

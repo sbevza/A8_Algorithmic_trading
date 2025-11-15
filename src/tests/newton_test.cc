@@ -5,7 +5,7 @@
 #include <cmath>
 #include <vector>
 
-#include "models/newton_interpolator.h"
+#include "../algo_trading/models/newton_interpolator.h"
 
 using namespace s21;
 
@@ -70,8 +70,8 @@ TEST_F(NewtonInterpolatorTest, SelectPoints_Degree2) {
 
 // Тест: степень больше, чем точек — исключение
 TEST_F(NewtonInterpolatorTest, DegreeTooHigh_Throws) {
-  EXPECT_THROW(
-      { NewtonInterpolator interp(points_small, 10); }, std::invalid_argument);
+  EXPECT_THROW({ NewtonInterpolator interp(points_small, 10); },
+               std::invalid_argument);
 }
 
 // Тест: пустой ввод — исключение
