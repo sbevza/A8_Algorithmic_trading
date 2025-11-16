@@ -461,7 +461,7 @@ void MainWindow::plotApproximation(bool use_weights) {
   }
 
   controller_->buildLeastSquaresModel(degree, use_weights);
-  const auto curve = controller_->generateApproximationCurve( numPoints, days);
+  const auto curve = controller_->generateApproximationCurve(numPoints, days);
   if (curve.empty()) {
     QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
     return;
