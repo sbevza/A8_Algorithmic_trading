@@ -461,8 +461,7 @@ void MainWindow::plotApproximation(bool use_weights) {
   }
 
   controller_->buildLeastSquaresModel(degree, use_weights);
-  const auto curve = controller_->generateApproximationCurve(
-      degree, use_weights, numPoints, days);
+  const auto curve = controller_->generateApproximationCurve( numPoints, days);
   if (curve.empty()) {
     QMessageBox::warning(this, "Ошибка", "Не удалось построить кривую.");
     return;
@@ -535,8 +534,7 @@ void MainWindow::onPlotFourGraphsClicked() {
 
   for (const auto& config : configs) {
     controller_->buildLeastSquaresModel(config.degree, config.use_weights);
-    const auto curve = controller_->generateApproximationCurve(
-        config.degree, config.use_weights, numPoints, days);
+    const auto curve = controller_->generateApproximationCurve(numPoints, days);
     if (curve.empty()) continue;
 
     QVector<double> x, y;
@@ -579,7 +577,10 @@ void MainWindow::onRunTimingStudyClicked() {
     return;
   }
 
-  QProgressDialog progress("Выполнение измерений...", "Отмена", 0, h, this);
+  // Изменим максимальное значение на 2 * h
+  const int totalSteps = 2 * h;  // Сплайн + Ньютон для каждого k
+  QProgressDialog progress("Выполнение измерений...", "Отмена", 0, totalSteps,
+                           this);
   progress.setWindowTitle("Исследование временных характеристик");
   progress.setWindowModality(Qt::WindowModal);
   progress.setMinimumDuration(0);
@@ -609,6 +610,7 @@ void MainWindow::onRunTimingStudyClicked() {
     return total / kDefaultTimingMeasurements;
   };
 
+  int currentStep = 0;  // Счетчик текущего шага для прогресса
   for (int i = 0; i < h; ++i) {
     if (progress.wasCanceled()) {
       QMessageBox::information(this, "Отменено",
@@ -619,7 +621,8 @@ void MainWindow::onRunTimingStudyClicked() {
     const int k_i = N + (k_max - N) * i / (h - 1);
     k_values[i] = k_i;
 
-    progress.setLabelText(QString("Измерение %1/%2, k=%3 — сплайн...")
+    // Обновление прогресса перед измерением сплайна
+    progress.setLabelText(QString("Измерение %1/%2 (k=%3) — сплайн...")
                               .arg(i + 1)
                               .arg(h)
                               .arg(k_i));
@@ -639,12 +642,25 @@ void MainWindow::onRunTimingStudyClicked() {
         sum += controller_->getInterpolatedValue(dt);
       }
       if (std::isnan(sum)) {
+        // Обработка NaN, если нужно
       }
     });
 
     times_spline[i] = total_spline_time;
 
-    progress.setLabelText(QString("Измерение %1/%2, k=%3 — Ньютон...")
+    // Увеличиваем счетчик и обновляем прогресс после измерения сплайна
+    ++currentStep;
+    progress.setValue(currentStep);
+    QApplication::processEvents();  // Обязательно для обновления UI
+
+    if (progress.wasCanceled()) {  // Проверка отмены после каждого шага
+      QMessageBox::information(this, "Отменено",
+                               "Исследование прервано пользователем.");
+      return;
+    }
+
+    // Обновление прогресса перед измерением Ньютона
+    progress.setLabelText(QString("Измерение %1/%2 (k=%3) — Ньютон...")
                               .arg(i + 1)
                               .arg(h)
                               .arg(k_i));
@@ -656,10 +672,24 @@ void MainWindow::onRunTimingStudyClicked() {
         sum += controller_->getInterpolatedValueNewton(dt, newton_degree);
       }
       if (std::isnan(sum)) {
+        // Обработка NaN, если нужно
       }
     });
 
     times_newton[i] = total_newton_time;
+
+    // Увеличиваем счетчик и обновляем прогресс после измерения Ньютона
+    ++currentStep;
+    progress.setValue(currentStep);
+    QApplication::processEvents();  // Обязательно для обновления UI
+
+    // Проверка отмены после второго шага итерации (опционально, можно и не
+    // проверять здесь)
+    if (progress.wasCanceled()) {
+      QMessageBox::information(this, "Отменено",
+                               "Исследование прервано пользователем.");
+      return;
+    }
 
     const int row = ui->table_timing_results->rowCount();
     ui->table_timing_results->insertRow(row);
@@ -670,13 +700,16 @@ void MainWindow::onRunTimingStudyClicked() {
     ui->table_timing_results->setItem(
         row, 2, new QTableWidgetItem(QString::number(times_newton[i], 'f', 3)));
 
-    QApplication::processEvents();
+    QApplication::processEvents();  // Обновление таблицы
   }
 
-  progress.setValue(h);
+  // Прогресс должен быть уже равен totalSteps (2*h) в конце цикла
+  // progress.setValue(totalSteps); // Этот вызов теперь избыточен, но не
+  // помешает
   progress.setLabelText("Построение графиков...");
   QApplication::processEvents();
 
+  // Построение графиков (ваш код)
   const QVector<double> k_plot(k_values.begin(), k_values.end());
   const QVector<double> t_spline(times_spline.begin(), times_spline.end());
   const QVector<double> t_newton(times_newton.begin(), times_newton.end());

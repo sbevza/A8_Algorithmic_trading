@@ -6,7 +6,6 @@ TEST_FLAGS = -lgtest -lgtest_main -lstdc++ -lm -g
 TEST_FILES = Tests/spline_test.cc Tests/newton_test.cc Tests/least_squares_approximator_test.cc algo_trading/models/cubic_spline_interpolator.cc algo_trading/models/newton_interpolator.cc algo_trading/models/least_squares_approximator.cc algo_trading/models/trade_data.cc
 TEST = $(GCC) $(TEST_FILES) $(TEST_FLAGS) -o s21_test
 
-
 GCOVFLAGS = -fprofile-arcs -ftest-coverage
 
 OS = $(shell uname)
@@ -37,7 +36,7 @@ open:
 	$(OPEN)
 
 uninstall:
-	rm -rf build/
+	rm -rf algo_trading/build
 
 dist:
 	mkdir algo_trading_dist/

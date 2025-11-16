@@ -39,9 +39,12 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="inerpolation">
+       <property name="focusPolicy">
+        <enum>Qt::FocusPolicy::TabFocus</enum>
+       </property>
        <attribute name="title">
         <string>Интерполяция</string>
        </attribute>
@@ -169,7 +172,7 @@
               <item>
                <widget class="QLabel" name="lbl_interpolation_points_label">
                 <property name="text">
-                 <string>Количество точек</string>
+                 <string>Количество точек:</string>
                 </property>
                </widget>
               </item>
@@ -378,7 +381,7 @@
                    <item>
                     <widget class="QLabel" name="lbl_approx_points_label">
                      <property name="text">
-                      <string>Количество точек</string>
+                      <string>Количество точек:</string>
                      </property>
                     </widget>
                    </item>
@@ -601,6 +604,9 @@
     <number>-1</number>
    </property>
    <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="movable">
     <bool>false</bool>
    </property>
    <property name="allowedAreas">

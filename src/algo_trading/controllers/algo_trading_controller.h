@@ -34,8 +34,7 @@ class AlgoTradingController : public QObject {
   [[nodiscard]] double getApproximatedValue(const QDateTime& dateTime,
                                             int degree, bool use_weights);
   [[nodiscard]] std::vector<std::pair<double, double>>
-  generateApproximationCurve(int degree, bool use_weights, int numPoints,
-                             int extrapolateDays) const;
+  generateApproximationCurve(int numPoints, int extrapolateDays) const;
 
  private:
   std::vector<TradeData> trade_data_;

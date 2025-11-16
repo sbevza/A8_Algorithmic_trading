@@ -184,8 +184,7 @@ double AlgoTradingController::getApproximatedValue(const QDateTime &dateTime,
 }
 
 std::vector<std::pair<double, double>>
-AlgoTradingController::generateApproximationCurve(int degree, bool use_weights,
-                                                  int numPoints,
+AlgoTradingController::generateApproximationCurve(int numPoints,
                                                   int extrapolateDays) const {
   if (!lsq_approximator_ || trade_data_.empty()) {
     return {};
